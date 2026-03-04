@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\DepartmentResource;
 use App\Http\Resources\EmployeeResource;
 use App\Http\Resources\SpaceResource;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Space;
 use Illuminate\Http\JsonResponse;
@@ -18,8 +20,8 @@ class SpaceController extends Controller
         $employee = $request->user();
 
         $spaces = $employee->hasGlobalAccess()
-            ? Space::withCount(['members', 'tasks'])->where('is_active', true)->get()
-            : $employee->spaces()->withCount(['members', 'tasks'])->where('is_active', true)->get();
+            ? Space::with('department')->withCount(['members', 'tasks'])->where('is_active', true)->get()
+            : $employee->spaces()->with('department')->withCount(['members', 'tasks'])->where('is_active', true)->get();
 
         return response()->json(SpaceResource::collection($spaces));
     }
@@ -29,10 +31,11 @@ class SpaceController extends Controller
         $this->authorize('create', Space::class);
 
         $data = $request->validate([
-            'name'        => 'required|string|max:100',
-            'description' => 'nullable|string',
-            'color'       => 'nullable|string|size:7',
-            'icon'        => 'nullable|string|max:50',
+            'name'          => 'required|string|max:100',
+            'description'   => 'nullable|string',
+            'color'         => 'nullable|string|size:7',
+            'icon'          => 'nullable|string|max:50',
+            'department_id' => 'required|exists:departments,id',
         ]);
 
         $data['created_by'] = $request->user()->id;
@@ -46,13 +49,16 @@ class SpaceController extends Controller
             'added_by'   => $request->user()->id,
         ]);
 
+        // attach-dan SONRA loadCount — düzgün say üçün
+        $space->loadCount('members')->load('department');
+
         return response()->json(new SpaceResource($space), 201);
     }
 
     public function show(Request $request, Space $space): JsonResponse
     {
         $this->authorize('view', $space);
-        $space->load(['creator'])->loadCount(['members', 'tasks']);
+        $space->load(['creator', 'department'])->loadCount(['members', 'tasks']);
         return response()->json(new SpaceResource($space));
     }
 
@@ -61,14 +67,17 @@ class SpaceController extends Controller
         $this->authorize('update', $space);
 
         $data = $request->validate([
-            'name'        => 'sometimes|string|max:100',
-            'description' => 'nullable|string',
-            'color'       => 'nullable|string|size:7',
-            'icon'        => 'nullable|string|max:50',
-            'is_active'   => 'sometimes|boolean',
+            'name'          => 'sometimes|string|max:100',
+            'description'   => 'nullable|string',
+            'color'         => 'nullable|string|size:7',
+            'icon'          => 'nullable|string|max:50',
+            'is_active'     => 'sometimes|boolean',
+            'department_id' => 'nullable|exists:departments,id',
         ]);
 
         $space->update($data);
+        $space->loadCount(['members', 'tasks'])->load('department');
+
         return response()->json(new SpaceResource($space));
     }
 
@@ -110,5 +119,12 @@ class SpaceController extends Controller
         $this->authorize('manageMembers', $space);
         $space->members()->detach($employee->id);
         return response()->json(['message' => 'Üzv silindi.']);
+    }
+
+    // ── Departamentlər siyahısı (modal üçün) ─────────────────────────────
+    public function departments(): JsonResponse
+    {
+        $departments = Department::where('is_active', true)->orderBy('name')->get();
+        return response()->json($departments);
     }
 }

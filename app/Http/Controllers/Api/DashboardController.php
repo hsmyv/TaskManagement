@@ -2,25 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\CommentAdded;
-use App\Events\ChecklistToggled;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\AttachmentResource;
-use App\Http\Resources\ChecklistResource;
-use App\Http\Resources\CommentResource;
-use App\Http\Resources\NotificationResource;
-use App\Models\Attachment;
-use App\Models\Checklist;
-use App\Models\Comment;
+use App\Http\Resources\SpaceResource;
+use App\Http\Resources\TaskResource;
 use App\Models\Notification;
+use App\Models\Space;
 use App\Models\Task;
-use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-
-// ── DashboardController ───────────────────────────────────────────────────────
 
 class DashboardController extends Controller
 {
@@ -28,11 +17,40 @@ class DashboardController extends Controller
     {
         $employee = $request->user();
 
+        // ── Yalnız mənə aid tapşırıqlar (yaratdıqlarım + assign olunduqlarım) ──
         $myTasks = Task::forEmployee($employee)
             ->with(['space', 'assignees'])
             ->withCount('subtasks')
             ->whereNull('parent_task_id')
             ->get();
+
+        // ── Space-lər: members_count + mənə aid tasks_count ──────────────────
+        if ($employee->hasGlobalAccess()) {
+            // Admin / Executive — bütün space-lər, bütün tapşırıqlar
+            $spaces = Space::withCount('members')
+                ->withCount('tasks')
+                ->where('is_active', true)
+                ->get();
+        } else {
+            // Digər rolllar — yalnız üzv olduqları space-lər
+            // tasks_count → yalnız həmin space-də mənə aid tapşırıqlar
+            $spaces = $employee->spaces()
+                ->withCount('members')
+                ->withCount([
+                    'tasks as tasks_count' => function ($query) use ($employee) {
+                        $query->whereNull('parent_task_id')
+                              ->where(function ($q) use ($employee) {
+                                  // Mən yaratmışam VƏ ya mənə assign olunub
+                                  $q->where('created_by', $employee->id)
+                                    ->orWhereHas('assignees', function ($a) use ($employee) {
+                                        $a->where('employees.id', $employee->id);
+                                    });
+                              });
+                    },
+                ])
+                ->where('is_active', true)
+                ->get();
+        }
 
         return response()->json([
             'stats' => [
@@ -42,23 +60,25 @@ class DashboardController extends Controller
                 'completed'           => $myTasks->where('status', 'completed')->count(),
                 'overdue'             => $myTasks->filter(fn($t) => $t->isOverdue())->count(),
             ],
-            'due_soon' => \App\Http\Resources\TaskResource::collection(
-                $myTasks->filter(fn($t) => $t->due_date
+
+            'due_soon' => TaskResource::collection(
+                $myTasks->filter(fn($t) =>
+                    $t->due_date
                     && $t->due_date->isFuture()
                     && $t->due_date->diffInDays(now()) <= 7
                     && !in_array($t->status, ['completed', 'canceled'])
                 )->take(10)->values()
             ),
-            'overdue' => \App\Http\Resources\TaskResource::collection(
+
+            'overdue' => TaskResource::collection(
                 $myTasks->filter(fn($t) => $t->isOverdue())->take(10)->values()
             ),
-            'my_spaces' => \App\Http\Resources\SpaceResource::collection(
-                $employee->hasGlobalAccess()
-                    ? \App\Models\Space::withCount('tasks')->where('is_active', true)->get()
-                    : $employee->spaces()->withCount('tasks')->get()
-            ),
+
+            'my_spaces' => SpaceResource::collection($spaces),
+
             'unread_notifications' => Notification::where('employee_id', $employee->id)
-                ->unread()->count(),
+                ->unread()
+                ->count(),
         ]);
     }
 }

@@ -16,6 +16,10 @@ return new class extends Migration
             $table->string('color', 7)->default('#3B82F6'); // UI üçün rəng
             $table->string('icon')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->foreignId('department_id')
+                  ->nullable()
+                  ->constrained('departments')
+                  ->nullOnDelete();
             $table->foreignId('created_by')
                   ->constrained('employees')
                   ->restrictOnDelete();

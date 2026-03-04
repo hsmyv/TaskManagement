@@ -258,30 +258,106 @@
             </div>
         </div>
 
-        {{-- Sağ: Sidebar --}}
+        {{-- ── SAĞ SİDEBAR ─────────────────────────────────────────────────── --}}
         <div class="space-y-5">
+
+            {{-- ── Detallar (redaktə edilə bilən) ──────────────────────────── --}}
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <h3 class="font-semibold text-slate-800 mb-4 text-sm">Detallar</h3>
-                <div class="space-y-3 text-sm">
-                    <div class="flex justify-between">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-slate-800 text-sm">Detallar</h3>
+                    <button x-show="task.can?.update && !editingDetails"
+                            @click="openDetails()"
+                            class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Redaktə et
+                    </button>
+                </div>
+
+                {{-- Baxış modu --}}
+                <div x-show="!editingDetails" class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center">
                         <span class="text-slate-500">Başlama</span>
                         <span class="font-medium text-slate-700" x-text="task.start_date || '—'"></span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex justify-between items-center">
                         <span class="text-slate-500">Son tarix</span>
-                        <span class="font-medium" :class="task.is_overdue ? 'text-red-600' : 'text-slate-700'"
-                              x-text="task.due_date || '—'"></span>
+                        <span class="font-medium" :class="task.is_overdue ? 'text-red-600 font-semibold' : 'text-slate-700'"
+                              x-text="(task.is_overdue ? '⚠ ' : '') + (task.due_date || '—')"></span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-500">Prioritet</span>
+                        <span class="font-medium text-slate-700" x-text="priorityLabel(task.priority)"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
                         <span class="text-slate-500">Təxmini</span>
-                        <span class="font-medium text-slate-700" x-text="task.estimated_hours ? task.estimated_hours + ' saat' : '—'"></span>
+                        <span class="font-medium text-slate-700"
+                              x-text="task.estimated_hours ? task.estimated_hours + ' saat' : '—'"></span>
+                    </div>
+                </div>
+
+                {{-- Redaktə modu --}}
+                <div x-show="editingDetails" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Başlama tarixi</label>
+                        <input type="date" x-model="detailForm.start_date"
+                               class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Son tarix (deadline)</label>
+                        <input type="date" x-model="detailForm.due_date"
+                               :disabled="task.deadline_locked && !task.can?.update_deadline"
+                               class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <p x-show="task.deadline_locked && !task.can?.update_deadline"
+                           class="text-xs text-orange-500 mt-1">🔒 Deadline kilidlidir</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Prioritet</label>
+                        <select x-model="detailForm.priority"
+                                class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="low">🟢 Aşağı</option>
+                            <option value="medium">🔵 Orta</option>
+                            <option value="high">🟠 Yüksək</option>
+                            <option value="urgent">🔴 Təcili</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Təxmini müddət (saat)</label>
+                        <input type="number" x-model="detailForm.estimated_hours" min="1"
+                               placeholder="məs: 8"
+                               class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex gap-2 pt-1">
+                        <button @click="saveDetails()"
+                                :disabled="savingDetails"
+                                class="flex-1 text-sm bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-500 disabled:opacity-50 transition-colors flex items-center justify-center gap-1">
+                            <svg x-show="savingDetails" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            <span x-text="savingDetails ? 'Saxlanılır...' : 'Saxla'"></span>
+                        </button>
+                        <button @click="editingDetails=false"
+                                class="flex-1 text-sm text-slate-600 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                            Ləğv
+                        </button>
                     </div>
                 </div>
             </div>
 
+            {{-- ── Məsul şəxslər (redaktə edilə bilən) ──────────────────── --}}
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <h3 class="font-semibold text-slate-800 mb-4 text-sm">Məsul şəxslər</h3>
-                <div class="space-y-2.5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-slate-800 text-sm">Məsul şəxslər</h3>
+                    <button x-show="(task.can?.assign || task.can?.update) && !editingAssignees"
+                            @click="openAssignees()"
+                            class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Redaktə et
+                    </button>
+                </div>
+
+                {{-- Baxış modu --}}
+                <div x-show="!editingAssignees" class="space-y-2.5">
                     <template x-for="a in (task.assignees||[])" :key="a.id">
                         <div class="flex items-center gap-3">
                             <img :src="a.avatar_url" class="w-8 h-8 rounded-full">
@@ -293,8 +369,69 @@
                     </template>
                     <p x-show="(task.assignees||[]).length===0" class="text-sm text-slate-400 italic">Məsul şəxs yoxdur</p>
                 </div>
+
+                {{-- Redaktə modu --}}
+                <div x-show="editingAssignees">
+                    {{-- Seçilmişlər --}}
+                    <div class="flex flex-wrap gap-1.5 mb-3 min-h-[28px]">
+                        <template x-for="emp in selectedAssignees" :key="emp.id">
+                            <span class="inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full">
+                                <img :src="emp.avatar_url" class="w-4 h-4 rounded-full">
+                                <span x-text="emp.full_name"></span>
+                                <button @click="removeAssignee(emp.id)" class="hover:text-red-500 ml-0.5">✕</button>
+                            </span>
+                        </template>
+                        <span x-show="selectedAssignees.length === 0"
+                              class="text-xs text-slate-400 italic">Heç kim seçilməyib</span>
+                    </div>
+
+                    {{-- Axtarış --}}
+                    <div class="relative mb-3">
+                        <input type="text"
+                               x-model="assigneeSearch"
+                               @input="showAssigneeSuggestions = assigneeSearch.length > 1"
+                               @keydown.escape="showAssigneeSuggestions = false"
+                               placeholder="Əməkdaş axtar..."
+                               class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div x-show="showAssigneeSuggestions && assigneeSuggestions.length > 0"
+                             @click.outside="showAssigneeSuggestions = false"
+                             class="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto">
+                            <template x-for="emp in assigneeSuggestions" :key="emp.id">
+                                <button type="button"
+                                        @click="addAssignee(emp)"
+                                        class="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-slate-50 text-left transition-colors">
+                                    <img :src="emp.avatar_url" class="w-7 h-7 rounded-full shrink-0">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-slate-800 truncate" x-text="emp.full_name"></p>
+                                        <p class="text-xs text-slate-400 truncate" x-text="emp.position ?? '—'"></p>
+                                    </div>
+                                    <svg class="w-4 h-4 text-blue-400 shrink-0 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button @click="saveAssignees()"
+                                :disabled="savingAssignees"
+                                class="flex-1 text-sm bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-500 disabled:opacity-50 transition-colors flex items-center justify-center gap-1">
+                            <svg x-show="savingAssignees" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            <span x-text="savingAssignees ? 'Saxlanılır...' : 'Saxla'"></span>
+                        </button>
+                        <button @click="editingAssignees = false"
+                                class="flex-1 text-sm text-slate-600 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                            Ləğv
+                        </button>
+                    </div>
+                </div>
             </div>
 
+            {{-- Status Tarixçəsi --}}
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <h3 class="font-semibold text-slate-800 mb-4 text-sm">Status Tarixçəsi</h3>
                 <div class="space-y-3 max-h-64 overflow-y-auto scrollbar-thin">
@@ -322,8 +459,7 @@
 
 {{-- Status comment modal --}}
 <div x-data="{ showStatusModal: false, pendingStatus: null, statusComment: '' }"
-     @open-status-modal.window="showStatusModal=true; pendingStatus=$event.detail.status; statusComment=''"
-     @confirm-status.window="confirmStatus($event.detail)">
+     @open-status-modal.window="showStatusModal=true; pendingStatus=$event.detail.status; statusComment=''">
     <div x-show="showStatusModal" x-transition.opacity
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div @click.stop class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
@@ -345,15 +481,30 @@
 function taskDetail(taskId) {
     return {
         taskId,
-        task: {},
-        comments: [],
-        newComment: '',
+        task:             {},
+        comments:         [],
+        newComment:       '',
         newChecklistItem: '',
-        editingTitle: false, editTitle: '',
-        editingDesc: false, editDesc: '',
-        showSubtaskForm: false,
-        newSubtask: { title:'', due_date:'' },
-        _pollTimer: null,
+        editingTitle:     false,
+        editTitle:        '',
+        editingDesc:      false,
+        editDesc:         '',
+        showSubtaskForm:  false,
+        newSubtask:       { title:'', due_date:'' },
+        _pollTimer:       null,
+
+        // ── Detallar redaktəsi ─────────────────────────────────────────
+        editingDetails:  false,
+        savingDetails:   false,
+        detailForm:      {},
+
+        // ── Assignee redaktəsi ─────────────────────────────────────────
+        editingAssignees:       false,
+        savingAssignees:        false,
+        selectedAssignees:      [],
+        assigneeSearch:         '',
+        showAssigneeSuggestions:false,
+        spaceEmployees:         [],   // space üzvləri
 
         statuses: [
             { value:'todo',                label:'Görüləcək',       icon:'📋' },
@@ -369,17 +520,29 @@ function taskDetail(taskId) {
             return Math.round(items.filter(c => c.is_done).length / items.length * 100);
         },
 
+        // Artıq seçilməyənlər + axtarış filteri
+        get assigneeSuggestions() {
+            if (this.assigneeSearch.length < 2) return [];
+            const selectedIds = this.selectedAssignees.map(e => e.id);
+            const q = this.assigneeSearch.toLowerCase();
+            return this.spaceEmployees
+                .filter(e => !selectedIds.includes(e.id))
+                .filter(e =>
+                    e.full_name.toLowerCase().includes(q) ||
+                    (e.position ?? '').toLowerCase().includes(q)
+                )
+                .slice(0, 8);
+        },
+
         async init() {
             await this.loadTask();
             await this.loadComments();
 
-            // Hər 20 saniyə yenilə
             this._pollTimer = setInterval(() => {
                 this.loadTask();
                 this.loadComments();
             }, 20_000);
 
-            // Status dəyişikliyi təsdiqi
             window.addEventListener('confirm-status-change', async (e) => {
                 await this.doChangeStatus(e.detail.status, e.detail.comment);
             });
@@ -393,18 +556,97 @@ function taskDetail(taskId) {
 
         async loadComments() {
             try {
-                const res  = await api('GET', `/tasks/${this.taskId}/comments`);
-                this.comments = res;
+                this.comments = await api('GET', `/tasks/${this.taskId}/comments`);
             } catch(e) {}
         },
 
+        // ── Detallar redaktəsi ────────────────────────────────────────
+        openDetails() {
+            this.detailForm = {
+                start_date:      this.task.start_date      ?? '',
+                due_date:        this.task.due_date        ?? '',
+                priority:        this.task.priority        ?? 'medium',
+                estimated_hours: this.task.estimated_hours ?? '',
+            };
+            this.editingDetails = true;
+        },
+
+        async saveDetails() {
+            this.savingDetails = true;
+            try {
+                const payload = {
+                    start_date:      this.detailForm.start_date      || null,
+                    due_date:        this.detailForm.due_date         || null,
+                    priority:        this.detailForm.priority,
+                    estimated_hours: this.detailForm.estimated_hours  || null,
+                };
+                const updated = await api('PUT', `/tasks/${this.taskId}`, payload);
+                // Yalnız lazım olan sahələri yenilə, digərləri qalsın
+                this.task.start_date      = updated.start_date;
+                this.task.due_date        = updated.due_date;
+                this.task.priority        = updated.priority;
+                this.task.estimated_hours = updated.estimated_hours;
+                this.task.is_overdue      = updated.is_overdue;
+                this.editingDetails = false;
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Detallar yeniləndi', type:'success' } }));
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
+            } finally {
+                this.savingDetails = false;
+            }
+        },
+
+        // ── Assignee redaktəsi ────────────────────────────────────────
+        async openAssignees() {
+            this.selectedAssignees       = [...(this.task.assignees ?? [])];
+            this.assigneeSearch          = '';
+            this.showAssigneeSuggestions = false;
+            this.editingAssignees        = true;
+
+            // Space üzvlərini yüklə (bir dəfə)
+            if (this.spaceEmployees.length === 0 && this.task.space_id) {
+                try {
+                    this.spaceEmployees = await api('GET', `/spaces/${this.task.space_id}/members`);
+                } catch(e) {}
+            }
+        },
+
+        addAssignee(emp) {
+            if (!this.selectedAssignees.find(e => e.id === emp.id)) {
+                this.selectedAssignees.push(emp);
+            }
+            this.assigneeSearch          = '';
+            this.showAssigneeSuggestions = false;
+        },
+
+        removeAssignee(id) {
+            this.selectedAssignees = this.selectedAssignees.filter(e => e.id !== id);
+        },
+
+        async saveAssignees() {
+            this.savingAssignees = true;
+            try {
+                const updated = await api('PATCH', `/tasks/${this.taskId}/assignees`, {
+                    assignee_ids: this.selectedAssignees.map(e => e.id),
+                });
+                this.task.assignees    = updated.assignees ?? this.selectedAssignees;
+                this.editingAssignees  = false;
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Məsul şəxslər yeniləndi', type:'success' } }));
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
+            } finally {
+                this.savingAssignees = false;
+            }
+        },
+
+        // ── Status ───────────────────────────────────────────────────
         changeStatus(status) {
             window.dispatchEvent(new CustomEvent('open-status-modal', { detail: { status } }));
         },
 
         async doChangeStatus(status, comment) {
             try {
-                const res       = await api('PATCH', `/tasks/${this.taskId}/status`, { status, comment });
+                const res          = await api('PATCH', `/tasks/${this.taskId}/status`, { status, comment });
                 this.task.status       = res.status;
                 this.task.status_label = res.status_label;
                 await this.loadTask();
@@ -424,6 +666,7 @@ function taskDetail(taskId) {
             }
         },
 
+        // ── Title / Desc ──────────────────────────────────────────────
         async saveTitle() {
             if (!this.editTitle.trim()) return;
             try {
@@ -440,12 +683,13 @@ function taskDetail(taskId) {
             try {
                 await api('PUT', `/tasks/${this.taskId}`, { description: this.editDesc });
                 this.task.description = this.editDesc;
-                this.editingDesc = false;
+                this.editingDesc      = false;
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
             }
         },
 
+        // ── Comments ──────────────────────────────────────────────────
         async submitComment() {
             if (!this.newComment.trim()) return;
             try {
@@ -464,6 +708,7 @@ function taskDetail(taskId) {
             } catch(e) {}
         },
 
+        // ── Checklist ─────────────────────────────────────────────────
         async addChecklist() {
             if (!this.newChecklistItem.trim()) return;
             try {
@@ -488,17 +733,19 @@ function taskDetail(taskId) {
             } catch(e) {}
         },
 
+        // ── Subtasks ──────────────────────────────────────────────────
         async createSubtask() {
             if (!this.newSubtask.title.trim()) return;
             try {
                 const sub = await api('POST', `/tasks/${this.taskId}/subtasks`, this.newSubtask);
                 if (!this.task.subtasks) this.task.subtasks = [];
                 this.task.subtasks.push(sub);
-                this.newSubtask = { title:'', due_date:'' };
+                this.newSubtask      = { title:'', due_date:'' };
                 this.showSubtaskForm = false;
             } catch(e) {}
         },
 
+        // ── Attachments ───────────────────────────────────────────────
         async uploadFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -522,12 +769,15 @@ function taskDetail(taskId) {
             } catch(e) {}
         },
 
-        getExt(name) { return name?.split('.').pop().toUpperCase().slice(0,4) || 'FILE'; },
-        priorityLabel(p) { return { low:'Aşağı', medium:'Orta', high:'Yüksək', urgent:'Təcili' }[p] || p; },
+        // ── Helpers ───────────────────────────────────────────────────
+        getExt(name)      { return name?.split('.').pop().toUpperCase().slice(0,4) || 'FILE'; },
+        priorityLabel(p)  { return { low:'Aşağı', medium:'Orta', high:'Yüksək', urgent:'Təcili' }[p] || p; },
         formatDate(dt) {
             if (!dt) return '';
-            return new Date(dt).toLocaleDateString('az-AZ', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-        }
+            return new Date(dt).toLocaleDateString('az-AZ', {
+                day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
+            });
+        },
     }
 }
 </script>

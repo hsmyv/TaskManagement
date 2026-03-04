@@ -18,7 +18,7 @@ class TaskService
     public function createTask(Space $space, array $data, Employee $creator): Task
     {
         return DB::transaction(function () use ($space, $data, $creator) {
-            $assignedBy = $data['assigned_by_id'] ?? $creator->id;
+            $assignedBy = $data['assigned_by_id'] ?? null;
 
             $task = Task::create([
                 'title'            => $data['title'],

@@ -22,6 +22,7 @@ class Space extends Model
         'icon',
         'is_active',
         'created_by',
+        'department_id',
     ];
 
     protected function casts(): array
@@ -39,7 +40,7 @@ class Space extends Model
 
         static::creating(function (Space $space) {
             if (empty($space->slug)) {
-                $space->slug = Str::slug($space->name);
+                $space->slug = Str::slug($space->name) . '-' . Str::random(4);
             }
         });
     }
@@ -49,6 +50,11 @@ class Space extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'created_by');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
     }
 
     public function members(): BelongsToMany
@@ -63,9 +69,6 @@ class Space extends Model
         return $this->hasMany(Task::class, 'space_id');
     }
 
-    /**
-     * Yalnız əsas tasklar (subtask deyil)
-     */
     public function rootTasks(): HasMany
     {
         return $this->hasMany(Task::class, 'space_id')

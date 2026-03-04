@@ -60,6 +60,10 @@ class TaskPolicy
         if ($spaceRole === 'senior_manager') {
             return true;
         }
+        if ($spaceRole === 'employee') {
+            // Employee öz yaratdığı tapşırığı assign edə bilər
+            return $task->created_by === $employee->id;
+        }
 
         // Middle Manager — yalnız öz yaratdıqları
         if ($spaceRole === 'middle_manager') {
@@ -91,39 +95,34 @@ class TaskPolicy
      */
     public function assign(Employee $employee, Task $task): bool
     {
-        if ($employee->hasGlobalAccess()) {
-            return true;
-        }
+        if ($employee->hasGlobalAccess()) return true;
 
-        $spaceRole = $employee->spaceRole($task->space);
+        // Space yüklü deyilsə əlavə yüklə
+        $space = $task->relationLoaded('space') ? $task->space : $task->load('space')->space;
+        if (!$space) return false;
 
-        // Employee rolunda olanlar assign edə bilməz
-        if ($spaceRole === 'employee') {
-            return false;
-        }
+        $spaceRole = $employee->spaceRole($space);
 
-        // Middle Manager — yalnız öz taskları
-        if ($spaceRole === 'middle_manager') {
-            return $task->created_by === $employee->id;
-        }
+        // Senior — həmişə
+        if ($spaceRole === 'senior_manager') return true;
 
-        // Senior Manager
-        return $spaceRole === 'senior_manager';
+        // Middle + Employee — yalnız öz yaratdığı tapşırıqda
+        return $task->created_by === $employee->id;
     }
 
     /**
      * Tapşırığı təsdiqləmək (Waiting for approve → Completed)
      */
-    public function approve(Employee $employee, Task $task): bool
-    {
-        if ($employee->hasGlobalAccess()) {
-            return true;
+        public function approve(Employee $employee, Task $task): bool
+        {
+            if ($employee->hasGlobalAccess()) return true;
+
+            // assigned_by təyin edilməyibsə — heç kim approve edə bilməz
+            if (is_null($task->assigned_by)) return false;
+
+            // Yalnız tapşırığı verən şəxs approve edə bilər
+            return $task->assigned_by === $employee->id;
         }
-
-        // Yalnız tapşırığı assign edən şəxs təsdiqləyə bilər
-        return $task->assigned_by === $employee->id;
-    }
-
     /**
      * Task silmək
      */

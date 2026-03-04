@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,7 +26,7 @@ class Employee extends Authenticatable
         'password',
         'phone',
         'position',
-        'department',
+        'department_id',
         'avatar',
         'external_id',
         'source_type',
@@ -59,11 +60,15 @@ class Employee extends Authenticatable
             return asset('storage/' . $this->avatar);
         }
 
-        // Default: baş hərflərə əsaslanan avatar
         return "https://ui-avatars.com/api/?name={$this->name}+{$this->surname}&background=3B82F6&color=fff";
     }
 
     // ── Relations ─────────────────────────────────────────────────────────
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
 
     public function spaces(): BelongsToMany
     {
@@ -100,33 +105,26 @@ class Employee extends Authenticatable
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    /**
-     * İstifadəçinin müəyyən Space-in üzvü olub olmadığını yoxla
-     */
     public function isMemberOf(Space $space): bool
     {
         return $this->spaces()->where('spaces.id', $space->id)->exists();
     }
 
-    /**
-     * Space daxilindəki rolu qaytar
-     */
     public function spaceRole(Space $space): ?string
     {
         $member = $this->spaces()->where('spaces.id', $space->id)->first();
         return $member?->pivot->space_role;
     }
 
-    /**
-     * Executive Manager və ya Administrator-dursa qlobal icazəsi var
-     */
     public function hasGlobalAccess(): bool
     {
         return $this->hasAnyRole(['administrator', 'executive_manager']);
     }
 
-    // Employee.php modelinə
-public function scopeActive($query) {
-    return $query->where('is_active', true);
-}
+    // ── Scopes ────────────────────────────────────────────────────────────
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }
