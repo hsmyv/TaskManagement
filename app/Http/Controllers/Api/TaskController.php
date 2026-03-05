@@ -138,6 +138,7 @@ class TaskController extends Controller
         $this->taskService->deleteTask($task, $request->user());
         return response()->json(['message' => 'Tapşırıq silindi.']);
     }
+    
 
     /**
      * Status dəyişikliyi

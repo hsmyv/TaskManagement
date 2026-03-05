@@ -63,16 +63,21 @@ class AuthController extends Controller
 
     public function searchEmployees(Request $request): JsonResponse
     {
-        $q = $request->query('q', '');
-        $employees = Employee::where('is_active', true)
+        $q       = $request->query('q', '');
+        $spaceId = $request->query('space_id');
+
+        $query = Employee::where('is_active', true)
             ->where(function ($query) use ($q) {
                 $query->where('name', 'like', "%{$q}%")
-                      ->orWhere('surname', 'like', "%{$q}%")
-                      ->orWhere('email', 'like', "%{$q}%");
-            })
-            ->limit(20)
-            ->get();
+                    ->orWhere('surname', 'like', "%{$q}%")
+                    ->orWhere('email', 'like', "%{$q}%");
+            });
 
-        return response()->json(EmployeeResource::collection($employees));
+        // Space üzvləri ilə məhdudlaşdır
+        if ($spaceId) {
+            $query->whereHas('spaces', fn($q) => $q->where('spaces.id', $spaceId));
+        }
+
+        return response()->json(EmployeeResource::collection($query->limit(20)->get()));
     }
 }

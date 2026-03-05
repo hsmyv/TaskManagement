@@ -48,32 +48,30 @@ class TaskPolicy
     /**
      * Task-ı redaktə etmək
      */
-    public function update(Employee $employee, Task $task): bool
-    {
-        if ($employee->hasGlobalAccess()) {
-            return true;
-        }
-
-        $spaceRole = $employee->spaceRole($task->space);
-
-        // Senior Manager — öz Space-ındakı bütün tasklar
-        if ($spaceRole === 'senior_manager') {
-            return true;
-        }
-        if ($spaceRole === 'employee') {
-            // Employee öz yaratdığı tapşırığı assign edə bilər
-            return $task->created_by === $employee->id;
-        }
-
-        // Middle Manager — yalnız öz yaratdıqları
-        if ($spaceRole === 'middle_manager') {
-            return $task->created_by === $employee->id;
-        }
-
-        // Employee — öz yaratdıqları + məsul olduğu tasklar
-        return $task->created_by === $employee->id
-            || $task->isAssignee($employee);
+public function update(Employee $employee, Task $task): bool
+{
+    if ($employee->hasGlobalAccess()) {
+        return true;
     }
+
+    // Tapşırığı verən şəxs həmişə update edə bilər (drag, status, approve)
+    if ($task->assigned_by === $employee->id) {
+        return true;
+    }
+
+    $spaceRole = $employee->spaceRole($task->space);
+
+    if ($spaceRole === 'senior_manager') {
+        return true;
+    }
+
+    if ($spaceRole === 'middle_manager') {
+        return $task->created_by === $employee->id;
+    }
+
+    return $task->created_by === $employee->id
+        || $task->isAssignee($employee);
+}
 
     /**
      * Deadline-ı dəyişmək
@@ -113,16 +111,16 @@ class TaskPolicy
     /**
      * Tapşırığı təsdiqləmək (Waiting for approve → Completed)
      */
-        public function approve(Employee $employee, Task $task): bool
-        {
-            if ($employee->hasGlobalAccess()) return true;
+    public function approve(Employee $employee, Task $task): bool
+    {
+        // require_approval olmasa — approve düyməsi heç kimə görünməsin
+        if (!$task->require_approval) return false;
 
-            // assigned_by təyin edilməyibsə — heç kim approve edə bilməz
-            if (is_null($task->assigned_by)) return false;
+        if ($employee->hasGlobalAccess()) return true;
 
-            // Yalnız tapşırığı verən şəxs approve edə bilər
-            return $task->assigned_by === $employee->id;
-        }
+        // Assignees-dən biri approve edə bilər
+        return $task->isAssignee($employee);
+    }
     /**
      * Task silmək
      */

@@ -90,9 +90,12 @@
                                 <h4 class="text-sm font-semibold text-slate-800 mb-2 leading-snug" x-text="task.title"></h4>
 
                                 <div class="flex items-center gap-2 text-xs text-slate-400 mb-3">
+                                    <span x-show="task.start_date"
+                                        x-text="'🗓 ' + formatDate(task.start_date)"></span>
+                                    <span x-show="task.start_date && task.due_date">→</span>
                                     <span x-show="task.due_date"
-                                          :class="task.is_overdue ? 'text-red-500 font-medium' : ''"
-                                          x-text="task.due_date ? '📅 ' + formatDate(task.due_date) : ''"></span>
+                                        :class="task.is_overdue ? 'text-red-500 font-medium' : ''"
+                                        x-text="task.due_date ? '⏰ ' + formatDate(task.due_date) : ''"></span>
                                     <span x-show="task.subtasks_count > 0" x-text="`⊂ ${task.subtasks_count}`"></span>
                                     <span x-show="task.comments_count > 0"  x-text="`💬 ${task.comments_count}`"></span>
                                     <span x-show="task.attachments_count > 0" x-text="`📎 ${task.attachments_count}`"></span>
@@ -102,17 +105,21 @@
                                     <div class="flex -space-x-2">
                                         <template x-for="a in (task.assignees||[]).slice(0,3)" :key="a.id">
                                             <img :src="a.avatar_url" :title="a.full_name"
-                                                 class="w-6 h-6 rounded-full border-2 border-white">
+                                                class="w-6 h-6 rounded-full border-2 border-white">
                                         </template>
-                                        <span x-show="(task.assignees||[]).length > 3"
-                                              class="w-6 h-6 rounded-full bg-slate-200 border-2 border-white text-xs text-slate-500 flex items-center justify-center"
-                                              x-text="`+${task.assignees.length - 3}`"></span>
                                     </div>
-                                    <button x-show="task.status === 'waiting_for_approve' && task.can?.approve"
-                                            @click.stop="approveTask(task)"
-                                            class="text-xs bg-green-500 hover:bg-green-400 text-white px-2 py-1 rounded-lg font-medium transition-colors">
-                                        Təsdiqlə ✓
-                                    </button>
+                                    <div class="flex items-center gap-1">
+                                        <button x-show="task.status === 'waiting_for_approve' && task.can?.approve"
+                                                @click.stop="approveTask(task)"
+                                                class="text-xs bg-green-500 hover:bg-green-400 text-white px-2 py-1 rounded-lg font-medium transition-colors">
+                                            Təsdiqlə ✓
+                                        </button>
+                                        <button x-show="task.can?.delete"
+                                                @click.stop="deleteTask(task)"
+                                                class="text-xs bg-red-50 hover:bg-red-100 text-red-500 px-2 py-1 rounded-lg font-medium transition-colors">
+                                            🗑
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -184,7 +191,7 @@
                 </div>
 
                 {{-- Assignees --}}
-                <div x-data="employeePicker()" x-init="init()">
+                <div x-data="employeePicker(spaceId)" x-init="init()">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Məsul şəxslər</label>
                     <input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true"
                            placeholder="Ad ilə axtarın..."
@@ -373,19 +380,32 @@ function kanban(spaceId) {
         formatDate(dt) {
             if (!dt) return '';
             return new Date(dt).toLocaleDateString('az-AZ', { day:'numeric', month:'short' });
+        },
+        async deleteTask(task) {
+            if (!confirm(`"${task.title}" tapşırığını silmək istədiyinizə əminsiniz?`)) return;
+            try {
+                await api('DELETE', `/tasks/${task.id}`);
+                await this.loadTasks();
+                this.$nextTick(() => this.initDragDrop());
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq silindi', type:'success' } }));
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
+            }
         }
     }
 }
 
 // Employee axtarış komponenti
-function employeePicker() {
+function employeePicker(spaceId = null) {
     return {
-        search: '', results: [], selected: [], open: false,
+        search: '', results: [], selected: [], open: false, spaceId,
         init() {},
         async searchEmployees() {
             if (this.search.length < 2) { this.results = []; return; }
             try {
-                const data   = await api('GET', `/employees/search?q=${encodeURIComponent(this.search)}`);
+                let url = `/employees/search?q=${encodeURIComponent(this.search)}`;
+                if (this.spaceId) url += `&space_id=${this.spaceId}`;
+                const data   = await api('GET', url);
                 this.results = data.filter(e => !this.selected.find(s => s.id === e.id));
             } catch(e) {}
         },

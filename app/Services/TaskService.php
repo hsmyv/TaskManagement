@@ -109,6 +109,11 @@ class TaskService
             $currentStatus  = TaskStatus::from($task->status);
             $resolvedStatus = TaskStatus::resolveNextStatus($newStatus, $task->require_approval);
 
+            // waiting_for_approve → completed yalnız approve button ilə mümkündür
+            if ($currentStatus === TaskStatus::WaitingForApprove && $resolvedStatus === TaskStatus::WaitingForApprove) {
+                abort(422, 'Bu tapşırıq təsdiq gözləyir');
+            }
+
             if (!$currentStatus->canTransitionTo($resolvedStatus)) {
                 abort(422, "'{$currentStatus->label()}' → '{$resolvedStatus->label()}' keçidi mümkün deyil.");
             }
@@ -175,8 +180,14 @@ class TaskService
         return $task;
     }
 
-    public function deleteTask(Task $task): void
-    {
-        $task->delete();
+public function deleteTask(Task $task, Employee $deleter): void
+{
+    // Tapşırığı yaradan özü silirsə — heç kimə notify getməsin
+    // Başqası silirsə — creator + assignees-ə getsin
+    if ($deleter->id !== $task->created_by) {
+        $this->notificationService->notifyTaskDeleted($task, $deleter);
     }
+
+    $task->delete();
+}
 }
