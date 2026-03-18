@@ -221,16 +221,56 @@
                     {{-- selected id-ləri parent x-data-ya ötür --}}
                     <span x-effect="newTask.assignee_ids = selected.map(e => e.id)"></span>
                 </div>
+                {{-- Kim tərəfdən (Assigned by) --}}
+<div x-data="assignedByPicker()" x-init="init()">
+    <label class="block text-sm font-medium text-slate-700 mb-1">
+        Kim tərəfdən
+        <span class="text-xs text-slate-400 font-normal">(tapşırığı təyin edən)</span>
+    </label>
+    <div class="relative">
+        <input type="text" x-model="search"
+               @input.debounce.300ms="searchEmployees()"
+               @focus="open=true"
+               placeholder="Boş buraxılsa — siz özünüz..."
+               class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+
+        {{-- Seçilmiş şəxs --}}
+        <template x-if="selected">
+            <div class="flex items-center gap-2 mt-2 bg-indigo-50 text-indigo-700 text-xs px-3 py-2 rounded-xl w-fit">
+                <img :src="selected.avatar_url" class="w-5 h-5 rounded-full">
+                <span x-text="selected.full_name"></span>
+                <button type="button" @click="clear()" class="hover:text-red-500 ml-1">✕</button>
+            </div>
+        </template>
+
+        {{-- Axtarış nəticəsi --}}
+        <div x-show="open && results.length > 0" @click.outside="open=false"
+             class="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+            <template x-for="emp in results" :key="emp.id">
+                <button type="button" @click="pick(emp)"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-sm">
+                    <img :src="emp.avatar_url" class="w-7 h-7 rounded-full">
+                    <div>
+                        <p class="font-medium text-slate-800" x-text="emp.full_name"></p>
+                        <p class="text-xs text-slate-400" x-text="emp.position"></p>
+                    </div>
+                </button>
+            </template>
+        </div>
+    </div>
+    {{-- ID-ni parent form-a ötür --}}
+    <span x-effect="newTask.assigned_by_id = selected ? selected.id : null"></span>
+</div>
 
                 <div class="flex flex-wrap gap-4">
                     <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                         <input type="checkbox" x-model="newTask.require_approval" class="rounded">
                         Təsdiq tələb olunur
                     </label>
-                    <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                    {{-- <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                         <input type="checkbox" x-model="newTask.deadline_locked" class="rounded">
                         Deadline kilidli
-                    </label>
+                    </label> --}}
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2">
@@ -264,7 +304,7 @@ function kanban(spaceId) {
         ],
         showCreateModal: false,
         creating: false,
-        newTask: { title:'', description:'', priority:'medium', visibility:'all_members', start_date:'', due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false },
+        newTask: { title:'', description:'', priority:'medium', visibility:'all_members', start_date: new Date().toISOString().split('T')[0], due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false, assigned_by_id: null },
         sortables: [],
         countdown: 30,
         _pollTimer: null,
@@ -307,48 +347,58 @@ function kanban(spaceId) {
             }
         },
 
-        initDragDrop() {
-            this.sortables.forEach(s => s.destroy());
-            this.sortables = [];
+initDragDrop() {
+    this.$nextTick(() => {
+        this.sortables.forEach(s => { try { s.destroy(); } catch(e) {} });
+        this.sortables = [];
 
-            this.columns.forEach(col => {
-                const el = document.getElementById(`col-${col.status}`);
-                if (!el) return;
+        this.columns.forEach(col => {
+            const el = document.getElementById(`col-${col.status}`);
+            if (!el) return;
 
-                const s = Sortable.create(el, {
-                    group: 'kanban',
-                    animation: 200,
-                    ghostClass: 'sortable-ghost',
-                    chosenClass: 'sortable-chosen',
-                    handle: '.kanban-card',
-                    onEnd: (evt) => {
-                        const taskId    = parseInt(evt.item.dataset.taskId);
-                        const newStatus = evt.to.dataset.status;
-                        const oldStatus = evt.from.dataset.status;
-                        if (newStatus !== oldStatus) {
-                            this.moveTask(taskId, newStatus);
-                        }
+            if (el._sortable) { try { el._sortable.destroy(); } catch(e) {} }
+
+            const s = Sortable.create(el, {
+                group:       'kanban',
+                animation:   150,
+                ghostClass:  'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                handle:      '.kanban-card',
+                onEnd: (evt) => {
+                    const taskId    = parseInt(evt.item.dataset.taskId);
+                    const newStatus = evt.to.dataset.status;
+                    const oldStatus = evt.from.dataset.status;
+                    if (newStatus && newStatus !== oldStatus) {
+                        this.moveTask(taskId, newStatus);
                     }
-                });
-                this.sortables.push(s);
+                }
             });
-        },
 
-        async moveTask(taskId, newStatus) {
-            try {
-                await api('PATCH', `/tasks/${taskId}/order`, { status: newStatus });
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Status dəyişdirildi', type:'success' } }));
-            } catch(e) {
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
-                await this.loadTasks();
-                this.$nextTick(() => this.initDragDrop());
-            }
-        },
+            el._sortable = s;
+            this.sortables.push(s);
+        });
+    });
+
+
+
+},
+
+async moveTask(taskId, newStatus) {
+    try {
+        await api('PATCH', `/tasks/${taskId}/order`, { status: newStatus });
+        window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Status dəyişdirildi', type:'success' } }));
+    } catch(e) {
+        window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
+    } finally {
+        await this.loadTasks();
+        this.$nextTick(() => this.initDragDrop());
+    }
+},
 
         openTask(id) { window.location.href = `/tasks/${id}`; },
 
         openCreateTask() {
-            this.newTask = { title:'', description:'', priority:'medium', visibility:'all_members', start_date:'', due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false };
+            this.newTask = { title:'', description:'', priority:'medium', visibility:'all_members', start_date: new Date().toISOString().split('T')[0], due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false };
             this.showCreateModal = true;
         },
 
@@ -414,6 +464,31 @@ function employeePicker(spaceId = null) {
             this.search = ''; this.results = []; this.open = false;
         },
         remove(id) { this.selected = this.selected.filter(e => e.id !== id); }
+    }
+}
+
+function assignedByPicker() {
+    return {
+        search: '',
+        results: [],
+        selected: null,
+        open: false,
+        async init() {},
+        async searchEmployees() {
+            if (this.search.length < 1) { this.results = []; return; }
+            const res = await fetch(`/api/employees/search?q=${this.search}`, {
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
+            });
+            this.results = await res.json();
+            this.open = true;
+        },
+        pick(emp) {
+            this.selected = emp;
+            this.search = '';
+            this.results = [];
+            this.open = false;
+        },
+        clear() { this.selected = null; }
     }
 }
 </script>

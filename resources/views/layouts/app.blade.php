@@ -41,6 +41,7 @@
         .status-canceled { background: #fef2f2; border-top: 3px solid #ef4444; }
         @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.5} }
         .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
     </style>
 </head>
 <body class="h-full bg-slate-50 font-sans antialiased" x-cloak>
