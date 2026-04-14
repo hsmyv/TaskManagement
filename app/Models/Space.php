@@ -60,13 +60,18 @@ class Space extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(Employee::class, 'space_members', 'space_id', 'employee_id')
-                    ->withPivot(['space_role', 'joined_at', 'added_by'])
+                    ->withPivot(['space_role', 'is_manager', 'joined_at', 'added_by'])
                     ->withTimestamps();
     }
 
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class, 'space_id');
+    }
+
+    public function boards(): HasMany
+    {
+        return $this->hasMany(Board::class, 'space_id');
     }
 
     public function rootTasks(): HasMany
@@ -86,5 +91,13 @@ class Space extends Model
     {
         $member = $this->members()->where('employees.id', $employee->id)->first();
         return $member?->pivot->space_role;
+    }
+
+    public function isManager(Employee $employee): bool
+    {
+        return $this->members()
+            ->where('employees.id', $employee->id)
+            ->wherePivot('is_manager', true)
+            ->exists();
     }
 }

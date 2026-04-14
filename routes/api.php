@@ -9,6 +9,10 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SpaceController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\BoardController;
+use App\Http\Controllers\Api\BoardListController;
+use App\Http\Controllers\Api\BoardTaskController;
+use App\Http\Controllers\Api\BoardActivityController;
 use Illuminate\Support\Facades\Route;
 
 // ── Public ────────────────────────────────────────────────────────────────────
@@ -29,6 +33,21 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
     Route::post('/spaces/{space}/members',          [SpaceController::class, 'addMember']);
     Route::delete('/spaces/{space}/members/{employee}', [SpaceController::class, 'removeMember']);
     Route::get('/spaces/{space}/members',           [SpaceController::class, 'members']);
+
+    // Boards (Trello-like)
+    Route::get('/spaces/{space}/boards',            [BoardController::class, 'index']);
+    Route::post('/spaces/{space}/boards',           [BoardController::class, 'store']);
+    Route::get('/boards/{board}',                   [BoardController::class, 'show']);
+    Route::get('/boards/{board}/activity',          [BoardActivityController::class, 'index']);
+
+    // Board Lists
+    Route::post('/boards/{board}/lists',            [BoardListController::class, 'store']);
+    Route::put('/board-lists/{list}',               [BoardListController::class, 'update']);
+    Route::delete('/board-lists/{list}',            [BoardListController::class, 'destroy']);
+
+    // Board Tasks
+    Route::post('/board-lists/{list}/tasks',        [BoardTaskController::class, 'store']);
+    Route::patch('/tasks/{task}/move',              [BoardTaskController::class, 'move']);
 
     // Tasks
     Route::get('/spaces/{space}/tasks',             [TaskController::class, 'index']);

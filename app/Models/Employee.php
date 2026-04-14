@@ -73,8 +73,15 @@ class Employee extends Authenticatable
     public function spaces(): BelongsToMany
     {
         return $this->belongsToMany(Space::class, 'space_members', 'employee_id', 'space_id')
-                    ->withPivot(['space_role', 'joined_at', 'added_by'])
+                    ->withPivot(['space_role', 'is_manager', 'joined_at', 'added_by'])
                     ->withTimestamps();
+    }
+
+    public function boards(): BelongsToMany
+    {
+        return $this->belongsToMany(Board::class, 'board_members', 'employee_id', 'board_id')
+            ->withPivot(['joined_at', 'added_by'])
+            ->withTimestamps();
     }
 
     public function createdTasks(): HasMany
@@ -114,6 +121,14 @@ class Employee extends Authenticatable
     {
         $member = $this->spaces()->where('spaces.id', $space->id)->first();
         return $member?->pivot->space_role;
+    }
+
+    public function isSpaceManager(Space $space): bool
+    {
+        return $this->spaces()
+            ->where('spaces.id', $space->id)
+            ->wherePivot('is_manager', true)
+            ->exists();
     }
 
     public function hasGlobalAccess(): bool

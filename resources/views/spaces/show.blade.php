@@ -42,11 +42,82 @@
         </div>
 
         <div class="ml-auto">
-            <button @click="openCreateTask()"
-                    class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Tapşırıq əlavə et
-            </button>
+            <div class="flex items-center gap-2">
+                <button @click="toggleBoards()"
+                        class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                    ☰ Boards
+                </button>
+                <button @click="openCreateTask()"
+                        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Tapşırıq əlavə et
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Boards Sidebar --}}
+    <div class="fixed inset-0 z-40" x-show="boardsOpen" x-transition.opacity>
+        <div class="absolute inset-0 bg-black/40" @click="boardsOpen=false"></div>
+        <div class="absolute right-0 top-0 h-full w-96 bg-white border-l border-slate-200 shadow-2xl flex flex-col"
+             @click.stop>
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-semibold text-slate-800">Boards</h3>
+                <button @click="boardsOpen=false" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            <div class="p-5 flex-1 overflow-y-auto scrollbar-thin">
+                <template x-if="boardsLoading">
+                    <div class="text-sm text-slate-400">Yüklənir...</div>
+                </template>
+
+                <template x-if="!boardsLoading && boards.length === 0">
+                    <div class="text-sm text-slate-400">Hələ board yoxdur.</div>
+                </template>
+
+                <div class="space-y-3">
+                    <template x-for="b in boards" :key="b.id">
+                        <a :href="`/spaces/${spaceId}/boards/${b.id}`"
+                           class="block border border-slate-100 rounded-2xl p-4 hover:bg-slate-50 transition-colors">
+                            <p class="font-semibold text-slate-800" x-text="b.name"></p>
+                            <p class="text-xs text-slate-400 mt-1" x-text="`${b.lists_count || 0} list`"></p>
+                        </a>
+                    </template>
+                </div>
+            </div>
+
+            <div class="p-5 border-t border-slate-100">
+                <button @click="openCreateBoard()"
+                        class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
+                    + Yeni Board
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Create Board Modal --}}
+    <div x-show="showCreateBoardModal" x-transition.opacity
+         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div @click.stop x-transition.scale class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="px-6 py-4 border-b flex items-center justify-between">
+                <h2 class="font-semibold text-slate-800">Yeni Board</h2>
+                <button @click="showCreateBoardModal=false" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6 space-y-3">
+                <input x-model="newBoard.name" placeholder="Board adı..."
+                       class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                <textarea x-model="newBoard.description" rows="2" placeholder="Təsvir (opsional)..."
+                          class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"></textarea>
+                <p x-show="boardError" x-text="boardError" class="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2"></p>
+            </div>
+            <div class="px-6 pb-6 flex justify-end gap-3">
+                <button @click="showCreateBoardModal=false" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Ləğv</button>
+                <button @click="createBoard()"
+                        :disabled="savingBoard || !newBoard.name.trim()"
+                        class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg disabled:opacity-50">
+                    <span x-text="savingBoard ? 'Yaradılır...' : 'Yarat'"></span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -294,6 +365,13 @@ function kanban(spaceId) {
     return {
         spaceId,
         groupedTasks: {},
+        boardsOpen: false,
+        boardsLoading: false,
+        boards: [],
+        showCreateBoardModal: false,
+        savingBoard: false,
+        boardError: '',
+        newBoard: { name: '', description: '' },
         filters: { status:'', priority:'', due_soon:false, overdue:false },
         columns: [
             { status:'todo',                label:'Görüləcək',       icon:'📋' },
@@ -344,6 +422,46 @@ function kanban(spaceId) {
                 });
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
+            }
+        },
+
+        async toggleBoards() {
+            this.boardsOpen = !this.boardsOpen;
+            if (this.boardsOpen) {
+                await this.loadBoards();
+            }
+        },
+
+        async loadBoards() {
+            this.boardsLoading = true;
+            try {
+                const res = await api('GET', `/spaces/${this.spaceId}/boards`);
+                this.boards = res.data || [];
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
+            } finally {
+                this.boardsLoading = false;
+            }
+        },
+
+        openCreateBoard() {
+            this.boardError = '';
+            this.newBoard = { name: '', description: '' };
+            this.showCreateBoardModal = true;
+        },
+
+        async createBoard() {
+            this.boardError = '';
+            this.savingBoard = true;
+            try {
+                await api('POST', `/spaces/${this.spaceId}/boards`, this.newBoard);
+                this.showCreateBoardModal = false;
+                await this.loadBoards();
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Board yaradıldı!', type:'success' } }));
+            } catch(e) {
+                this.boardError = e.message || 'Xəta';
+            } finally {
+                this.savingBoard = false;
             }
         },
 
