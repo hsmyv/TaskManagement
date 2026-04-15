@@ -10,13 +10,16 @@ class BoardPolicy
     public function view(Employee $employee, Board $board): bool
     {
         return $employee->hasGlobalAccess()
-            || $employee->isMemberOf($board->space);
+            || $employee->isSpaceManager($board->space)
+            || $board->created_by === $employee->id
+            || $board->hasMember($employee);
     }
 
     public function create(Employee $employee, \App\Models\Space $space): bool
     {
         return $employee->hasGlobalAccess()
-            || $employee->isSpaceManager($space);
+            || $employee->isSpaceManager($space)
+            || $employee->canCreateBoardsInSpace($space);
     }
 
     public function update(Employee $employee, Board $board): bool

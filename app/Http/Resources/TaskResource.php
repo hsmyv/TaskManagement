@@ -20,7 +20,7 @@ class TaskResource extends JsonResource
             'board_position'   => $this->board_position,
             'parent_task_id'   => $this->parent_task_id,
             'status'           => $this->status,
-            'status_label'     => StatusHistory::statusLabel($this->status),
+            'status_label'     => $this->status ? StatusHistory::statusLabel($this->status) : null,
             'priority'         => $this->priority,
             'start_date'       => $this->start_date?->toDateString(),
             'due_date'         => $this->due_date?->toDateString(),

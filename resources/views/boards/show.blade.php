@@ -7,11 +7,11 @@
 
     {{-- Main board --}}
     <div class="flex-1 overflow-x-auto">
-        <div class="flex gap-4 p-6 min-w-max">
+        <div id="board-lists-container" class="flex gap-4 p-6 min-w-max">
             <template x-for="list in lists" :key="list.id">
-                <div class="w-80 shrink-0">
+                <div class="w-80 shrink-0 board-list-column" :data-list-column-id="list.id">
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col max-h-[calc(100vh-160px)]">
-                        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
+                        <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2 list-drag-handle cursor-grab select-none">
                             <div class="min-w-0">
                                 <p class="font-semibold text-slate-800 text-sm truncate" x-text="list.title"></p>
                                 <p class="text-xs text-slate-400" x-text="`${(list.tasks||[]).length} task`"></p>
@@ -106,6 +106,100 @@
         ☰
     </button>
 
+    {{-- Members floating button --}}
+    <button @click="openMembers()"
+            class="fixed right-6 bottom-20 bg-white text-slate-800 border border-slate-200 rounded-full shadow-xl w-12 h-12 flex items-center justify-center hover:bg-slate-50 transition-colors">
+        👥
+    </button>
+
+    {{-- Members Modal --}}
+    <div x-show="showMembersModal" x-transition.opacity
+         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div @click.stop x-transition.scale class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
+            <div class="px-6 py-4 border-b flex items-center justify-between">
+                <h2 class="font-semibold text-slate-800">Board üzvləri</h2>
+                <button @click="showMembersModal=false" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            <div class="p-6">
+                <template x-if="membersLoading">
+                    <div class="text-sm text-slate-400">Yüklənir...</div>
+                </template>
+
+                <template x-if="!membersLoading">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-sm text-slate-600">
+                                Space üzvlərindən seçilir.
+                            </p>
+                            <button x-show="canManageMembers"
+                                    @click="toggleEditMembers()"
+                                    class="text-sm px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+                                <span x-text="editingMembers ? 'Bağla' : 'Üzv əlavə et'"></span>
+                            </button>
+                        </div>
+
+                        {{-- Current members --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <template x-for="m in boardMembers" :key="m.id">
+                                <div class="flex items-center justify-between gap-3 border border-slate-100 rounded-2xl p-3">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <img :src="m.avatar_url" class="w-9 h-9 rounded-full">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-semibold text-slate-800 truncate" x-text="m.full_name"></p>
+                                            <p class="text-xs text-slate-400 truncate" x-text="m.position || ''"></p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600"
+                                          x-show="m.id === boardCreatedBy">Creator</span>
+                                </div>
+                            </template>
+                        </div>
+
+                        {{-- Edit members (space members checklist) --}}
+                        <div x-show="editingMembers" class="mt-3 border border-slate-100 rounded-2xl p-4">
+                            <div class="flex items-center gap-3">
+                                <input type="text" x-model="memberSearch" placeholder="Space üzvlərində axtar..."
+                                       class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+
+                            <div class="mt-3 max-h-72 overflow-y-auto scrollbar-thin divide-y divide-slate-100">
+                                <template x-for="m in filteredSpaceMembers()" :key="m.id">
+                                    <label class="flex items-center gap-3 py-2 cursor-pointer">
+                                        <input type="checkbox" class="rounded"
+                                               :disabled="m.id === boardCreatedBy"
+                                               :checked="selectedMemberIds.includes(m.id)"
+                                               @change="toggleMember(m.id, $event.target.checked)">
+                                        <img :src="m.avatar_url" class="w-8 h-8 rounded-full">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-medium text-slate-800 truncate" x-text="m.full_name"></p>
+                                            <p class="text-xs text-slate-400 truncate" x-text="m.position || ''"></p>
+                                        </div>
+                                    </label>
+                                </template>
+                            </div>
+
+                            <p x-show="memberSaveError" x-text="memberSaveError"
+                               class="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-3"></p>
+
+                            <div class="mt-4 flex justify-end gap-3">
+                                <button @click="editingMembers=false"
+                                        class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">
+                                    Ləğv
+                                </button>
+                                <button @click="saveMembers()"
+                                        :disabled="savingMembers"
+                                        class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg disabled:opacity-50">
+                                    <span x-text="savingMembers ? 'Yadda saxlanır...' : 'Yadda saxla'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
     {{-- Create List Modal --}}
     <div x-show="showCreateListModal" x-transition.opacity
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -177,6 +271,17 @@ function trelloBoard(spaceId, boardId) {
         sidebarOpen: false,
         canViewActivity: false,
         sortables: [],
+        canManageMembers: false,
+        showMembersModal: false,
+        membersLoading: false,
+        boardMembers: [],
+        spaceMembers: [],
+        selectedMemberIds: [],
+        editingMembers: false,
+        memberSearch: '',
+        savingMembers: false,
+        memberSaveError: '',
+        boardCreatedBy: null,
 
         showCreateListModal: false,
         savingList: false,
@@ -199,6 +304,77 @@ function trelloBoard(spaceId, boardId) {
             const board = res.data;
             this.lists = board.lists || [];
             this.canViewActivity = !!board.can?.view_activity;
+            this.canManageMembers = !!board.can?.manage_members;
+            this.boardCreatedBy = board.created_by;
+        },
+
+        async openMembers() {
+            this.showMembersModal = true;
+            await this.loadMembers();
+        },
+
+        toggleEditMembers() {
+            this.memberSaveError = '';
+            this.editingMembers = !this.editingMembers;
+        },
+
+        filteredSpaceMembers() {
+            const q = (this.memberSearch || '').trim().toLowerCase();
+            if (!q) return this.spaceMembers || [];
+            return (this.spaceMembers || []).filter(m =>
+                (m.full_name || '').toLowerCase().includes(q) ||
+                (m.position || '').toLowerCase().includes(q) ||
+                (m.email || '').toLowerCase().includes(q)
+            );
+        },
+
+        toggleMember(id, checked) {
+            id = parseInt(id);
+            if (!Number.isFinite(id)) return;
+            if (id === this.boardCreatedBy) return;
+            const set = new Set(this.selectedMemberIds || []);
+            if (checked) set.add(id); else set.delete(id);
+            // always keep creator
+            if (this.boardCreatedBy) set.add(this.boardCreatedBy);
+            this.selectedMemberIds = Array.from(set);
+        },
+
+        async loadMembers() {
+            this.membersLoading = true;
+            try {
+                const [bm, sm] = await Promise.all([
+                    api('GET', `/boards/${this.boardId}/members`),
+                    api('GET', `/spaces/${this.spaceId}/members`),
+                ]);
+
+                this.boardMembers = bm.data || [];
+                this.spaceMembers = sm.data || sm || [];
+                this.selectedMemberIds = (this.boardMembers || []).map(m => m.id);
+                if (this.boardCreatedBy && !this.selectedMemberIds.includes(this.boardCreatedBy)) {
+                    this.selectedMemberIds.push(this.boardCreatedBy);
+                }
+            } catch (e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            } finally {
+                this.membersLoading = false;
+            }
+        },
+
+        async saveMembers() {
+            if (!this.canManageMembers) return;
+            this.memberSaveError = '';
+            this.savingMembers = true;
+            try {
+                const ids = (this.selectedMemberIds || []).map(n => parseInt(n)).filter(n => Number.isFinite(n));
+                await api('PUT', `/boards/${this.boardId}/members`, { member_ids: ids });
+                this.editingMembers = false;
+                await this.loadMembers();
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Üzvlər yeniləndi', type:'success' } }));
+            } catch (e) {
+                this.memberSaveError = e.message || 'Xəta';
+            } finally {
+                this.savingMembers = false;
+            }
         },
 
         toggleSidebar() {
@@ -270,6 +446,33 @@ function trelloBoard(spaceId, boardId) {
             this.$nextTick(() => {
                 this.sortables.forEach(s => { try { s.destroy(); } catch(e) {} });
                 this.sortables = [];
+
+                // Lists drag/drop (reorder columns)
+                const listsEl = document.getElementById('board-lists-container');
+                if (listsEl) {
+                    if (listsEl._sortable) { try { listsEl._sortable.destroy(); } catch(e) {} }
+                    listsEl._sortable = Sortable.create(listsEl, {
+                        animation: 150,
+                        draggable: '.board-list-column',
+                        handle: '.list-drag-handle',
+                        ghostClass: 'sortable-ghost',
+                        chosenClass: 'sortable-chosen',
+                        onEnd: async () => {
+                            const ids = Array.from(listsEl.querySelectorAll('.board-list-column'))
+                                .map(el => parseInt(el.dataset.listColumnId))
+                                .filter(n => Number.isFinite(n));
+                            try {
+                                await api('PUT', `/boards/${this.boardId}/lists/reorder`, { list_ids: ids });
+                            } catch(e) {
+                                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
+                            } finally {
+                                await this.loadBoard();
+                                this.$nextTick(() => this.initDragDrop());
+                                if (this.sidebarOpen) await this.loadActivity();
+                            }
+                        }
+                    });
+                }
 
                 (this.lists || []).forEach(list => {
                     const el = document.getElementById(`board-list-${list.id}`);

@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Space;
 
 class Employee extends Authenticatable
 {
@@ -73,7 +74,7 @@ class Employee extends Authenticatable
     public function spaces(): BelongsToMany
     {
         return $this->belongsToMany(Space::class, 'space_members', 'employee_id', 'space_id')
-                    ->withPivot(['space_role', 'is_manager', 'joined_at', 'added_by'])
+                    ->withPivot(['space_role', 'is_manager', 'can_create_boards', 'joined_at', 'added_by'])
                     ->withTimestamps();
     }
 
@@ -128,6 +129,14 @@ class Employee extends Authenticatable
         return $this->spaces()
             ->where('spaces.id', $space->id)
             ->wherePivot('is_manager', true)
+            ->exists();
+    }
+
+    public function canCreateBoardsInSpace(Space $space): bool
+    {
+        return $this->spaces()
+            ->where('spaces.id', $space->id)
+            ->wherePivot('can_create_boards', true)
             ->exists();
     }
 

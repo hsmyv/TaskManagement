@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Board;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -34,6 +35,7 @@ class SpaceResource extends JsonResource
                 'update'         => $request->user()?->can('update', $this->resource),
                 'delete'         => $request->user()?->can('delete', $this->resource),
                 'manage_members' => $request->user()?->can('manageMembers', $this->resource),
+                'create_board'   => $request->user()?->can('create', [Board::class, $this->resource]),
             ],
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

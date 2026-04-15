@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\BoardController;
 use App\Http\Controllers\Api\BoardListController;
 use App\Http\Controllers\Api\BoardTaskController;
 use App\Http\Controllers\Api\BoardActivityController;
+use App\Http\Controllers\Api\BoardMemberController;
 use Illuminate\Support\Facades\Route;
 
 // ── Public ────────────────────────────────────────────────────────────────────
@@ -39,9 +40,12 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
     Route::post('/spaces/{space}/boards',           [BoardController::class, 'store']);
     Route::get('/boards/{board}',                   [BoardController::class, 'show']);
     Route::get('/boards/{board}/activity',          [BoardActivityController::class, 'index']);
+    Route::get('/boards/{board}/members',           [BoardMemberController::class, 'index']);
+    Route::put('/boards/{board}/members',           [BoardMemberController::class, 'sync']);
 
     // Board Lists
     Route::post('/boards/{board}/lists',            [BoardListController::class, 'store']);
+    Route::put('/boards/{board}/lists/reorder',     [BoardListController::class, 'reorder']);
     Route::put('/board-lists/{list}',               [BoardListController::class, 'update']);
     Route::delete('/board-lists/{list}',            [BoardListController::class, 'destroy']);
 

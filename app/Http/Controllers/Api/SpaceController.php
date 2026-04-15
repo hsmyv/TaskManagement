@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DepartmentResource;
 use App\Http\Resources\EmployeeResource;
+use App\Http\Resources\SpaceMemberResource;
 use App\Http\Resources\SpaceResource;
 use App\Models\Department;
 use App\Models\Employee;
@@ -115,8 +116,15 @@ class SpaceController extends Controller
     public function members(Request $request, Space $space): JsonResponse
     {
         $this->authorize('view', $space);
-        $members = $space->members()->withPivot(['space_role', 'is_manager', 'joined_at'])->get();
-        return response()->json(EmployeeResource::collection($members));
+        $members = $space->members()
+            ->withPivot(['space_role', 'is_manager', 'can_create_boards', 'joined_at'])
+            ->orderBy('name')
+            ->orderBy('surname')
+            ->get();
+
+        return response()->json([
+            'data' => SpaceMemberResource::collection($members),
+        ]);
     }
 
     public function addMember(Request $request, Space $space): JsonResponse
@@ -127,9 +135,11 @@ class SpaceController extends Controller
             'employee_id' => 'required|exists:employees,id',
             'space_role'  => 'required|in:senior_manager,middle_manager,employee',
             'is_manager'  => 'nullable|boolean',
+            'can_create_boards' => 'nullable|boolean',
         ]);
 
         $isManager = (bool) ($data['is_manager'] ?? false);
+        $canCreateBoards = (bool) ($data['can_create_boards'] ?? false);
 
         if ($isManager) {
             // Only one manager per space — clear previous manager(s)
@@ -148,6 +158,7 @@ class SpaceController extends Controller
             $data['employee_id'] => [
                 'space_role' => $data['space_role'],
                 'is_manager' => $isManager,
+                'can_create_boards' => $canCreateBoards,
                 'added_by'   => $request->user()->id,
             ],
         ]);

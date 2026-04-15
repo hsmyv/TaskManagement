@@ -60,7 +60,7 @@ class Space extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(Employee::class, 'space_members', 'space_id', 'employee_id')
-                    ->withPivot(['space_role', 'is_manager', 'joined_at', 'added_by'])
+                    ->withPivot(['space_role', 'is_manager', 'can_create_boards', 'joined_at', 'added_by'])
                     ->withTimestamps();
     }
 

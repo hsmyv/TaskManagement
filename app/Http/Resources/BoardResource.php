@@ -22,6 +22,7 @@ class BoardResource extends JsonResource
             'can' => [
                 'view_activity' => $request->user() ? $request->user()->can('viewActivity', $this->resource) : false,
                 'update' => $request->user() ? $request->user()->can('update', $this->resource) : false,
+                'manage_members' => $request->user() ? $request->user()->can('manageMembers', $this->resource) : false,
             ],
         ];
     }

@@ -16,10 +16,21 @@ class BoardController extends Controller
     {
         $this->authorize('view', $space);
 
-        $boards = $space->boards()
+        $employee = $request->user();
+
+        $query = $space->boards()
             ->withCount('lists')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        // Default: only boards where the user is a board member
+        // Managers / board-creators (space-level) can see all boards in the space.
+        if (!($employee->hasGlobalAccess() || $employee->isSpaceManager($space) || $employee->canCreateBoardsInSpace($space))) {
+            $query->whereHas('members', function ($q) use ($employee) {
+                $q->where('employees.id', $employee->id);
+            });
+        }
+
+        $boards = $query->get();
 
         return response()->json([
             'data' => $boards,

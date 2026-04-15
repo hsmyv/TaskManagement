@@ -9,6 +9,7 @@ use App\Models\BoardList;
 use App\Services\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BoardListController extends Controller
 {
@@ -77,6 +78,38 @@ class BoardListController extends Controller
         ]);
 
         return response()->json([], 204);
+    }
+
+    public function reorder(Request $request, Board $board, ActivityLogger $logger): JsonResponse
+    {
+        $this->authorize('update', $board);
+
+        $validated = $request->validate([
+            'list_ids' => ['required', 'array', 'min:1'],
+            'list_ids.*' => ['integer', 'exists:board_lists,id'],
+        ]);
+
+        $listIds = collect($validated['list_ids'])->values();
+
+        // Ensure all lists belong to this board
+        $boardListIds = $board->lists()->pluck('id')->all();
+        foreach ($listIds as $id) {
+            if (!in_array((int) $id, $boardListIds, true)) {
+                return response()->json(['message' => 'List bu board-a aid deyil.'], 422);
+            }
+        }
+
+        DB::transaction(function () use ($listIds) {
+            foreach ($listIds as $pos => $id) {
+                BoardList::whereKey((int) $id)->update(['position' => (int) $pos]);
+            }
+        });
+
+        $logger->log($request->user(), 'reorder', 'board_list', (int) ($listIds->first() ?? 0), $board->space, $board, [
+            'list_ids' => $listIds->all(),
+        ]);
+
+        return response()->json(['message' => 'List sırası yeniləndi.']);
     }
 }
 

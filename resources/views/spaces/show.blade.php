@@ -43,6 +43,10 @@
 
         <div class="ml-auto">
             <div class="flex items-center gap-2">
+                <button x-show="canManageMembers" @click="openMembers()"
+                        class="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                    👥 Üzvlər
+                </button>
                 <button @click="toggleBoards()"
                         class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                     ☰ Boards
@@ -87,7 +91,7 @@
             </div>
 
             <div class="p-5 border-t border-slate-100">
-                <button @click="openCreateBoard()"
+                <button x-show="canCreateBoard" @click="openCreateBoard()"
                         class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
                     + Yeni Board
                 </button>
@@ -117,6 +121,46 @@
                         class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg disabled:opacity-50">
                     <span x-text="savingBoard ? 'Yaradılır...' : 'Yarat'"></span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    {{-- Space Members Modal (board-create permission) --}}
+    <div x-show="membersOpen" x-transition.opacity
+         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div @click.stop x-transition.scale class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl">
+            <div class="px-6 py-4 border-b flex items-center justify-between">
+                <h2 class="font-semibold text-slate-800">Space üzvləri və səlahiyyətlər</h2>
+                <button @click="membersOpen=false" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            <div class="p-6">
+                <template x-if="membersLoading">
+                    <div class="text-sm text-slate-400">Yüklənir...</div>
+                </template>
+
+                <template x-if="!membersLoading">
+                    <div class="space-y-3">
+                        <template x-for="m in members" :key="m.id">
+                            <div class="flex items-center justify-between gap-3 border border-slate-100 rounded-2xl p-4">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <img :src="m.avatar_url" class="w-10 h-10 rounded-full">
+                                    <div class="min-w-0">
+                                        <p class="font-semibold text-slate-800 truncate" x-text="m.full_name"></p>
+                                        <p class="text-xs text-slate-400 truncate" x-text="m.position || ''"></p>
+                                    </div>
+                                </div>
+
+                                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer shrink-0">
+                                    <input type="checkbox" class="rounded"
+                                           :checked="!!m.can_create_boards"
+                                           @change="updateMemberPermission(m, $event.target.checked)">
+                                    Board yaratsın
+                                </label>
+                            </div>
+                        </template>
+                    </div>
+                </template>
             </div>
         </div>
     </div>
@@ -365,6 +409,11 @@ function kanban(spaceId) {
     return {
         spaceId,
         groupedTasks: {},
+        canCreateBoard: false,
+        canManageMembers: false,
+        membersOpen: false,
+        membersLoading: false,
+        members: [],
         boardsOpen: false,
         boardsLoading: false,
         boards: [],
@@ -389,9 +438,56 @@ function kanban(spaceId) {
         _countTimer: null,
 
         async init() {
+            await this.loadSpacePermissions();
             await this.loadTasks();
             this.initDragDrop();
             this.startPolling();
+        },
+
+        async loadSpacePermissions() {
+            try {
+                const res = await api('GET', `/spaces/${this.spaceId}`);
+                this.canCreateBoard = !!res?.can?.create_board;
+                this.canManageMembers = !!res?.can?.manage_members;
+            } catch (e) {
+                this.canCreateBoard = false;
+                this.canManageMembers = false;
+            }
+        },
+
+        async openMembers() {
+            if (!this.canManageMembers) return;
+            this.membersOpen = true;
+            await this.loadMembers();
+        },
+
+        async loadMembers() {
+            this.membersLoading = true;
+            try {
+                const res = await api('GET', `/spaces/${this.spaceId}/members`);
+                this.members = res.data || [];
+            } catch (e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            } finally {
+                this.membersLoading = false;
+            }
+        },
+
+        async updateMemberPermission(member, checked) {
+            if (!member?.id) return;
+            try {
+                await api('POST', `/spaces/${this.spaceId}/members`, {
+                    employee_id: member.id,
+                    space_role: member.space_role || 'employee',
+                    is_manager: !!member.is_manager,
+                    can_create_boards: !!checked,
+                });
+                member.can_create_boards = !!checked;
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Səlahiyyət yeniləndi', type:'success' } }));
+            } catch (e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+                await this.loadMembers();
+            }
         },
 
         // ── Polling: hər 30 saniyə board-u yenilə ──────────────────────
