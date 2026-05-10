@@ -26,6 +26,9 @@ class ChecklistController extends Controller
 {
     public function store(Request $request, Task $task): JsonResponse
     {
+        // Yalnız task yaradan checklist elementləri əlavə edə bilər
+        $this->authorize('update', $task);
+
         $data  = $request->validate(['title' => 'required|string|max:255']);
         $order = $task->checklists()->max('order') + 1;
 
@@ -39,6 +42,10 @@ class ChecklistController extends Controller
 
     public function toggle(Request $request, Checklist $checklist): JsonResponse
     {
+        // Toggle etmək üçün task-ı görmək kifayətdir (məsul şəxs də işarələyə bilsin)
+        $task = $checklist->task()->with('space')->firstOrFail();
+        $this->authorize('view', $task);
+
         $checklist->update([
             'is_done'      => !$checklist->is_done,
             'completed_by' => !$checklist->is_done ? $request->user()->id : null,
@@ -50,6 +57,9 @@ class ChecklistController extends Controller
 
     public function update(Request $request, Checklist $checklist): JsonResponse
     {
+        $task = $checklist->task()->with('space')->firstOrFail();
+        $this->authorize('update', $task);
+
         $data = $request->validate(['title' => 'required|string|max:255']);
         $checklist->update($data);
         return response()->json(new ChecklistResource($checklist));
@@ -57,12 +67,17 @@ class ChecklistController extends Controller
 
     public function destroy(Checklist $checklist): JsonResponse
     {
+        $task = $checklist->task()->with('space')->firstOrFail();
+        $this->authorize('update', $task);
+
         $checklist->delete();
         return response()->json(['message' => 'Silindi.']);
     }
 
     public function reorder(Request $request, Task $task): JsonResponse
     {
+        $this->authorize('update', $task);
+
         $data = $request->validate([
             'items'      => 'required|array',
             'items.*.id' => 'required|exists:checklists,id',

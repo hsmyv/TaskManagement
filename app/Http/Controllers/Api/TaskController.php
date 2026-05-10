@@ -41,6 +41,9 @@ class TaskController extends Controller
         if ($request->filled('created_by')) {
             $query->where('created_by', $request->created_by);
         }
+        if ($request->filled('board_id')) {
+            $query->where('board_id', $request->board_id);
+        }
         if ($request->filled('due_date_from')) {
             $query->where('due_date', '>=', $request->due_date_from);
         }
@@ -58,7 +61,9 @@ class TaskController extends Controller
             $query->where('title', 'like', "%{$request->q}%");
         }
 
-        $tasks = $query->latest()->get();
+        $tasks = $request->filled('board_id')
+            ? $query->orderBy('board_position')->get()
+            : $query->latest()->get();
 
         // Kanban üçün statuslara görə qruplaşdır
         if ($request->boolean('grouped')) {
@@ -145,7 +150,7 @@ class TaskController extends Controller
      */
     public function updateStatus(Request $request, Task $task): JsonResponse
     {
-        $this->authorize('update', $task);
+        $this->authorize('changeStatus', $task);
 
         $data = $request->validate([
             'status'  => 'required|in:todo,in_progress,waiting_for_approve,completed,canceled',
@@ -195,7 +200,7 @@ class TaskController extends Controller
      */
     public function updateOrder(Request $request, Task $task): JsonResponse
     {
-        $this->authorize('update', $task);
+        $this->authorize('changeStatus', $task);
 
         $data = $request->validate([
             'status' => 'required|in:todo,in_progress,waiting_for_approve,completed,canceled',

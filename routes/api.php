@@ -10,7 +10,6 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SpaceController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\BoardController;
-use App\Http\Controllers\Api\BoardListController;
 use App\Http\Controllers\Api\BoardTaskController;
 use App\Http\Controllers\Api\BoardActivityController;
 use App\Http\Controllers\Api\BoardMemberController;
@@ -43,14 +42,8 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
     Route::get('/boards/{board}/members',           [BoardMemberController::class, 'index']);
     Route::put('/boards/{board}/members',           [BoardMemberController::class, 'sync']);
 
-    // Board Lists
-    Route::post('/boards/{board}/lists',            [BoardListController::class, 'store']);
-    Route::put('/boards/{board}/lists/reorder',     [BoardListController::class, 'reorder']);
-    Route::put('/board-lists/{list}',               [BoardListController::class, 'update']);
-    Route::delete('/board-lists/{list}',            [BoardListController::class, 'destroy']);
-
     // Board Tasks
-    Route::post('/board-lists/{list}/tasks',        [BoardTaskController::class, 'store']);
+    Route::post('/boards/{board}/tasks',            [BoardTaskController::class, 'store']);
     Route::patch('/tasks/{task}/move',              [BoardTaskController::class, 'move']);
 
     // Tasks

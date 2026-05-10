@@ -54,24 +54,19 @@ public function update(Employee $employee, Task $task): bool
         return true;
     }
 
-    // Tapşırığı verən şəxs həmişə update edə bilər (drag, status, approve)
-    if ($task->assigned_by === $employee->id) {
-        return true;
-    }
-
-    $spaceRole = $employee->spaceRole($task->space);
-
-    if ($spaceRole === 'senior_manager') {
-        return true;
-    }
-
-    if ($spaceRole === 'middle_manager') {
-        return $task->created_by === $employee->id;
-    }
-
-    return $task->created_by === $employee->id
-        || $task->isAssignee($employee);
+    // Yalnız task-ı yaradan redaktə edə bilər (detallar + məsul şəxslər)
+    return $task->created_by === $employee->id;
 }
+
+    /**
+     * Status dəyişmək / icra prosesində update (assignee edə bilər)
+     */
+    public function changeStatus(Employee $employee, Task $task): bool
+    {
+        if ($employee->hasGlobalAccess()) return true;
+        if (!$employee->isMemberOf($task->space)) return false;
+        return $task->created_by === $employee->id || $task->isAssignee($employee);
+    }
 
     /**
      * Deadline-ı dəyişmək
@@ -84,7 +79,7 @@ public function update(Employee $employee, Task $task): bool
                 || $employee->hasGlobalAccess();
         }
 
-        // Kilidli deyilsə — redaktə icazəsi olanlar
+        // Kilidli deyilsə — yalnız yaradan (update icazəsi)
         return $this->update($employee, $task);
     }
 
@@ -94,17 +89,6 @@ public function update(Employee $employee, Task $task): bool
     public function assign(Employee $employee, Task $task): bool
     {
         if ($employee->hasGlobalAccess()) return true;
-
-        // Space yüklü deyilsə əlavə yüklə
-        $space = $task->relationLoaded('space') ? $task->space : $task->load('space')->space;
-        if (!$space) return false;
-
-        $spaceRole = $employee->spaceRole($space);
-
-        // Senior — həmişə
-        if ($spaceRole === 'senior_manager') return true;
-
-        // Middle + Employee — yalnız öz yaratdığı tapşırıqda
         return $task->created_by === $employee->id;
     }
 

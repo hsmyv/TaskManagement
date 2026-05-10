@@ -37,14 +37,9 @@ class Board extends Model
             ->withTimestamps();
     }
 
-    public function lists(): HasMany
-    {
-        return $this->hasMany(BoardList::class, 'board_id')->orderBy('position');
-    }
-
     public function tasks(): HasMany
     {
-        return $this->hasMany(Task::class, 'board_id');
+        return $this->hasMany(Task::class, 'board_id')->orderBy('board_position');
     }
 
     public function hasMember(Employee $employee): bool

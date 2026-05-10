@@ -18,7 +18,9 @@ class BoardResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'created_by' => $this->created_by,
-            'lists' => BoardListResource::collection($this->whenLoaded('lists')),
+            'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
+            'tasks_count' => $this->whenCounted('tasks'),
+            'completed_tasks_count' => $this->completed_tasks_count ?? null,
             'can' => [
                 'view_activity' => $request->user() ? $request->user()->can('viewActivity', $this->resource) : false,
                 'update' => $request->user() ? $request->user()->can('update', $this->resource) : false,

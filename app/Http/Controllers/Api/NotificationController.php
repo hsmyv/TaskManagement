@@ -27,7 +27,7 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $notifications = Notification::where('employee_id', $request->user()->id)
-            ->latest()
+            ->orderByDesc('id')
             ->paginate(30);
 
         return response()->json([

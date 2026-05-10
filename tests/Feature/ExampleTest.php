@@ -14,6 +14,7 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        // App root is behind auth middleware, so guest should be redirected to login
+        $response->assertRedirect('/login');
     }
 }

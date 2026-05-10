@@ -16,6 +16,20 @@ class DashboardWebController extends Controller
 {
     public function index(): View
     {
+        $employee = Auth::user();
+
+        // Departament müdiri (space manager) daxil olduqda birbaşa idarə etdiyi space açılsın
+        if ($employee && !$employee->hasGlobalAccess()) {
+            $managedSpace = $employee->spaces()
+                ->wherePivot('is_manager', true)
+                ->orderBy('spaces.id')
+                ->first();
+
+            if ($managedSpace) {
+                redirect()->route('spaces.show', $managedSpace)->send();
+            }
+        }
+
         return view('dashboard');
     }
 }

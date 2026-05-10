@@ -3,100 +3,156 @@
 @section('page-title', $space->name)
 
 @section('content')
-<div x-data="kanban({{ $space->id }})" x-init="init()" class="flex flex-col h-full">
+<div x-data="spaceHub({{ $space->id }})" x-init="init()" class="p-6 space-y-6">
+    {{-- Top area: tasks (left) + boards (right) --}}
+    <div class="grid grid-cols-12 gap-6">
+        {{-- Left: My created tasks --}}
+        <div class="col-span-12 lg:col-span-3">
+            <div class="bg-slate-900 rounded-2xl p-4 text-white shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-semibold">Tapşırıqlar</h2>
+                    <button @click="openCreateTask()"
+                            class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                            title="Yeni tapşırıq">
+                        +
+                    </button>
+                </div>
 
-    {{-- Toolbar --}}
-    <div class="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap items-center gap-3 shrink-0">
-        <select x-model="filters.status" @change="loadTasks()"
-                class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Bütün statuslar</option>
-            <option value="todo">Görüləcək</option>
-            <option value="in_progress">İcra olunur</option>
-            <option value="waiting_for_approve">Təsdiq gözləyir</option>
-            <option value="completed">Tamamlandı</option>
-            <option value="canceled">Ləğv olundu</option>
-        </select>
+                <div class="space-y-2 max-h-[520px] overflow-y-auto scrollbar-thin pr-1">
+                    <template x-if="myTasksLoading">
+                        <div class="text-sm text-white/60">Yüklənir...</div>
+                    </template>
 
-        <select x-model="filters.priority" @change="loadTasks()"
-                class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Bütün prioritetlər</option>
-            <option value="urgent">Təcili</option>
-            <option value="high">Yüksək</option>
-            <option value="medium">Orta</option>
-            <option value="low">Aşağı</option>
-        </select>
+                    <template x-if="!myTasksLoading && myTasks.length === 0">
+                        <div class="text-sm text-white/60 py-6 text-center">Tapşırıq yoxdur</div>
+                    </template>
 
-        <label class="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer">
-            <input type="checkbox" x-model="filters.due_soon" @change="loadTasks()" class="rounded">
-            Son 7 gün
-        </label>
-        <label class="flex items-center gap-1.5 text-sm text-red-600 cursor-pointer">
-            <input type="checkbox" x-model="filters.overdue" @change="loadTasks()" class="rounded">
-            Gecikmiş
-        </label>
+                    <template x-for="t in myTasks" :key="t.id">
+                        <div class="bg-white/10 hover:bg-white/15 rounded-xl p-3 cursor-grab select-none"
+                             draggable="true"
+                             @dragstart="onDragTaskStart(t)"
+                             @click="openTaskModal(t.id)">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-sm font-semibold truncate" x-text="t.title"></p>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/80"
+                                      x-text="statusLabel(t.status)"></span>
+                            </div>
+                            <div class="mt-2 flex items-center justify-between text-xs text-white/60">
+                                <span x-text="t.due_date ? ('⏰ ' + formatDate(t.due_date)) : ''"></span>
+                                <span x-show="t.board_id" class="text-white/70" x-text="'📌 Board'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
 
-        {{-- Auto-refresh göstəricisi --}}
-        <div class="flex items-center gap-1.5 text-xs text-slate-400 ml-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-400 pulse-dot"></span>
-            <span x-text="'Yenilənmə: ' + countdown + 's'"></span>
+                <div class="mt-3 text-xs text-white/50">
+                    Tapşırığı sağdakı board-un üzərinə sürükləyib buraxın.
+                </div>
+            </div>
         </div>
 
-        <div class="ml-auto">
-            <div class="flex items-center gap-2">
-                <button x-show="canManageMembers" @click="openMembers()"
-                        class="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                    👥 Üzvlər
-                </button>
-                <button @click="toggleBoards()"
-                        class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                    ☰ Boards
-                </button>
-                <button @click="openCreateTask()"
-                        class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Tapşırıq əlavə et
-                </button>
+        {{-- Right: Boards grid --}}
+        <div class="col-span-12 lg:col-span-9">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <select x-model="boardFilters.days" @change="loadBoards()"
+                            class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white">
+                        <option value="7">Son 7 gün</option>
+                        <option value="30">Son 30 gün</option>
+                        <option value="365">Son 1 il</option>
+                    </select>
+                    <label class="text-sm text-slate-600 flex items-center gap-2">
+                        <input type="checkbox" x-model="boardFilters.overdue" @change="loadSpaceGrouped()" class="rounded">
+                        Gecikmiş
+                    </label>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button x-show="canCreateBoard" @click="openCreateBoard()"
+                            class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                        + Board əlavə edin
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <template x-if="boardsLoading">
+                    <div class="text-sm text-slate-400">Boardlar yüklənir...</div>
+                </template>
+
+                <template x-for="b in boards" :key="b.id">
+                    <a :href="`/spaces/${spaceId}/boards/${b.id}`"
+                       class="block rounded-2xl p-4 shadow-sm border border-slate-200 bg-gradient-to-br from-slate-800 to-slate-700 text-white relative overflow-hidden"
+                       @dragover.prevent
+                       @drop="onDropToBoard(b.id)">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="font-semibold truncate" x-text="b.name"></p>
+                                <p class="text-xs text-white/70 mt-0.5"
+                                   x-text="`${b.tasks_count ?? 0} tapşırıq`"></p>
+                            </div>
+                            <span class="text-[10px] bg-white/10 px-2 py-1 rounded-full">Board</span>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="h-2 bg-white/15 rounded-full overflow-hidden">
+                                <div class="h-2 bg-emerald-400 rounded-full"
+                                     :style="`width:${progressPercent(b)}%`"></div>
+                            </div>
+                            <div class="mt-2 text-xs text-white/70 flex justify-between">
+                                <span x-text="'İrəliləyiş'"></span>
+                                <span x-text="`${progressPercent(b)}%`"></span>
+                            </div>
+                        </div>
+                    </a>
+                </template>
+
+                <template x-if="!boardsLoading && boards.length === 0">
+                    <div class="text-sm text-slate-400">Bu space-də hələ board yoxdur.</div>
+                </template>
             </div>
         </div>
     </div>
 
-    {{-- Boards Sidebar --}}
-    <div class="fixed inset-0 z-40" x-show="boardsOpen" x-transition.opacity>
-        <div class="absolute inset-0 bg-black/40" @click="boardsOpen=false"></div>
-        <div class="absolute right-0 top-0 h-full w-96 bg-white border-l border-slate-200 shadow-2xl flex flex-col"
-             @click.stop>
-            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 class="font-semibold text-slate-800">Boards</h3>
-                <button @click="boardsOpen=false" class="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
+    {{-- Bottom: Space-wide grouped lists by status --}}
+    <div class="space-y-4">
+        <template x-for="s in statusSections" :key="s.key">
+            <div class="rounded-2xl border border-slate-200 overflow-hidden">
+                <div class="px-5 py-3 font-semibold text-white"
+                     :class="s.headerClass">
+                    <div class="flex items-center justify-between">
+                        <span x-text="s.label"></span>
+                        <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full"
+                              x-text="(spaceGrouped[s.key] || []).length"></span>
+                    </div>
+                </div>
+                <div class="bg-white">
+                    <template x-if="(spaceGrouped[s.key] || []).length === 0">
+                        <div class="px-5 py-6 text-sm text-slate-400">Tapşırıq yoxdur</div>
+                    </template>
 
-            <div class="p-5 flex-1 overflow-y-auto scrollbar-thin">
-                <template x-if="boardsLoading">
-                    <div class="text-sm text-slate-400">Yüklənir...</div>
-                </template>
-
-                <template x-if="!boardsLoading && boards.length === 0">
-                    <div class="text-sm text-slate-400">Hələ board yoxdur.</div>
-                </template>
-
-                <div class="space-y-3">
-                    <template x-for="b in boards" :key="b.id">
-                        <a :href="`/spaces/${spaceId}/boards/${b.id}`"
-                           class="block border border-slate-100 rounded-2xl p-4 hover:bg-slate-50 transition-colors">
-                            <p class="font-semibold text-slate-800" x-text="b.name"></p>
-                            <p class="text-xs text-slate-400 mt-1" x-text="`${b.lists_count || 0} list`"></p>
-                        </a>
+                    <template x-if="(spaceGrouped[s.key] || []).length > 0">
+                        <div class="divide-y divide-slate-100">
+                            <template x-for="t in (spaceGrouped[s.key] || [])" :key="t.id">
+                                <div class="px-5 py-3 hover:bg-slate-50 cursor-pointer"
+                                     @click="openTaskModal(t.id)">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-semibold text-slate-800 truncate" x-text="t.title"></p>
+                                            <p class="text-xs text-slate-400 mt-0.5"
+                                               x-text="t.board_id ? 'Board-da' : 'Board-suz'"></p>
+                                        </div>
+                                        <div class="text-xs text-slate-500 shrink-0">
+                                            <span x-text="t.due_date ? formatDate(t.due_date) : ''"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </template>
                 </div>
             </div>
-
-            <div class="p-5 border-t border-slate-100">
-                <button x-show="canCreateBoard" @click="openCreateBoard()"
-                        class="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors">
-                    + Yeni Board
-                </button>
-            </div>
-        </div>
+        </template>
     </div>
 
     {{-- Create Board Modal --}}
@@ -125,132 +181,7 @@
         </div>
     </div>
 
-    {{-- Space Members Modal (board-create permission) --}}
-    <div x-show="membersOpen" x-transition.opacity
-         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div @click.stop x-transition.scale class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl">
-            <div class="px-6 py-4 border-b flex items-center justify-between">
-                <h2 class="font-semibold text-slate-800">Space üzvləri və səlahiyyətlər</h2>
-                <button @click="membersOpen=false" class="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-
-            <div class="p-6">
-                <template x-if="membersLoading">
-                    <div class="text-sm text-slate-400">Yüklənir...</div>
-                </template>
-
-                <template x-if="!membersLoading">
-                    <div class="space-y-3">
-                        <template x-for="m in members" :key="m.id">
-                            <div class="flex items-center justify-between gap-3 border border-slate-100 rounded-2xl p-4">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <img :src="m.avatar_url" class="w-10 h-10 rounded-full">
-                                    <div class="min-w-0">
-                                        <p class="font-semibold text-slate-800 truncate" x-text="m.full_name"></p>
-                                        <p class="text-xs text-slate-400 truncate" x-text="m.position || ''"></p>
-                                    </div>
-                                </div>
-
-                                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer shrink-0">
-                                    <input type="checkbox" class="rounded"
-                                           :checked="!!m.can_create_boards"
-                                           @change="updateMemberPermission(m, $event.target.checked)">
-                                    Board yaratsın
-                                </label>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-            </div>
-        </div>
-    </div>
-
-    {{-- Kanban --}}
-    <div class="flex-1 overflow-x-auto">
-        <div class="flex gap-4 p-6 h-full min-w-max">
-            <template x-for="col in columns" :key="col.status">
-                <div class="w-80 shrink-0 flex flex-col h-full">
-                    <div class="rounded-t-xl px-4 py-3 flex items-center justify-between mb-2"
-                         :class="`status-${col.status}`">
-                        <div class="flex items-center gap-2">
-                            <span x-text="col.icon"></span>
-                            <h3 class="font-semibold text-slate-700 text-sm" x-text="col.label"></h3>
-                            <span class="bg-white/70 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full"
-                                  x-text="(groupedTasks[col.status] || []).length"></span>
-                        </div>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto scrollbar-thin space-y-3 pb-4 min-h-[200px] kanban-column rounded-b-xl px-1"
-                         :id="`col-${col.status}`"
-                         :data-status="col.status">
-
-                        <template x-for="task in (groupedTasks[col.status] || [])" :key="task.id">
-                            <div class="kanban-card bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer select-none"
-                                 :data-task-id="task.id"
-                                 @click="openTask(task.id)">
-
-                                <div class="flex items-start justify-between gap-2 mb-2">
-                                    <span class="text-xs font-medium px-2 py-0.5 rounded-full"
-                                          :class="{
-                                            'bg-slate-100 text-slate-500': task.priority==='low',
-                                            'bg-blue-100 text-blue-700': task.priority==='medium',
-                                            'bg-orange-100 text-orange-700': task.priority==='high',
-                                            'bg-red-100 text-red-700': task.priority==='urgent'
-                                          }"
-                                          x-text="priorityLabel(task.priority)"></span>
-                                    <span x-show="task.require_approval"
-                                          class="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full shrink-0">✓</span>
-                                </div>
-
-                                <h4 class="text-sm font-semibold text-slate-800 mb-2 leading-snug" x-text="task.title"></h4>
-
-                                <div class="flex items-center gap-2 text-xs text-slate-400 mb-3">
-                                    <span x-show="task.start_date"
-                                        x-text="'🗓 ' + formatDate(task.start_date)"></span>
-                                    <span x-show="task.start_date && task.due_date">→</span>
-                                    <span x-show="task.due_date"
-                                        :class="task.is_overdue ? 'text-red-500 font-medium' : ''"
-                                        x-text="task.due_date ? '⏰ ' + formatDate(task.due_date) : ''"></span>
-                                    <span x-show="task.subtasks_count > 0" x-text="`⊂ ${task.subtasks_count}`"></span>
-                                    <span x-show="task.comments_count > 0"  x-text="`💬 ${task.comments_count}`"></span>
-                                    <span x-show="task.attachments_count > 0" x-text="`📎 ${task.attachments_count}`"></span>
-                                </div>
-
-                                <div class="flex items-center justify-between">
-                                    <div class="flex -space-x-2">
-                                        <template x-for="a in (task.assignees||[]).slice(0,3)" :key="a.id">
-                                            <img :src="a.avatar_url" :title="a.full_name"
-                                                class="w-6 h-6 rounded-full border-2 border-white">
-                                        </template>
-                                    </div>
-                                    <div class="flex items-center gap-1">
-                                        <button x-show="task.status === 'waiting_for_approve' && task.can?.approve"
-                                                @click.stop="approveTask(task)"
-                                                class="text-xs bg-green-500 hover:bg-green-400 text-white px-2 py-1 rounded-lg font-medium transition-colors">
-                                            Təsdiqlə ✓
-                                        </button>
-                                        <button x-show="task.can?.delete"
-                                                @click.stop="deleteTask(task)"
-                                                class="text-xs bg-red-50 hover:bg-red-100 text-red-500 px-2 py-1 rounded-lg font-medium transition-colors">
-                                            🗑
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-
-                        <div x-show="(groupedTasks[col.status]||[]).length === 0"
-                             class="flex flex-col items-center justify-center py-10 text-slate-300">
-                            <span class="text-4xl mb-2" x-text="col.icon"></span>
-                            <p class="text-sm">Tapşırıq yoxdur</p>
-                        </div>
-                    </div>
-                </div>
-            </template>
-        </div>
-    </div>
-
-    {{-- Create Modal --}}
+    {{-- Create Task Modal (reuse previous form) --}}
     <div x-show="showCreateModal" x-transition.opacity
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div @click.stop x-transition.scale
@@ -258,7 +189,7 @@
             <div class="px-6 py-4 border-b flex items-center justify-between">
                 <h2 class="font-semibold text-lg text-slate-800">Yeni Tapşırıq</h2>
                 <button @click="showCreateModal = false" class="text-slate-400 hover:text-slate-600">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    ✕
                 </button>
             </div>
             <form @submit.prevent="createTask()" class="p-6 space-y-4">
@@ -305,7 +236,6 @@
                     </div>
                 </div>
 
-                {{-- Assignees --}}
                 <div x-data="employeePicker(spaceId)" x-init="init()">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Məsul şəxslər</label>
                     <input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true"
@@ -333,59 +263,7 @@
                             </button>
                         </template>
                     </div>
-                    {{-- selected id-ləri parent x-data-ya ötür --}}
                     <span x-effect="newTask.assignee_ids = selected.map(e => e.id)"></span>
-                </div>
-                {{-- Kim tərəfdən (Assigned by) --}}
-<div x-data="assignedByPicker()" x-init="init()">
-    <label class="block text-sm font-medium text-slate-700 mb-1">
-        Kim tərəfdən
-        <span class="text-xs text-slate-400 font-normal">(tapşırığı təyin edən)</span>
-    </label>
-    <div class="relative">
-        <input type="text" x-model="search"
-               @input.debounce.300ms="searchEmployees()"
-               @focus="open=true"
-               placeholder="Boş buraxılsa — siz özünüz..."
-               class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-
-        {{-- Seçilmiş şəxs --}}
-        <template x-if="selected">
-            <div class="flex items-center gap-2 mt-2 bg-indigo-50 text-indigo-700 text-xs px-3 py-2 rounded-xl w-fit">
-                <img :src="selected.avatar_url" class="w-5 h-5 rounded-full">
-                <span x-text="selected.full_name"></span>
-                <button type="button" @click="clear()" class="hover:text-red-500 ml-1">✕</button>
-            </div>
-        </template>
-
-        {{-- Axtarış nəticəsi --}}
-        <div x-show="open && results.length > 0" @click.outside="open=false"
-             class="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-            <template x-for="emp in results" :key="emp.id">
-                <button type="button" @click="pick(emp)"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-sm">
-                    <img :src="emp.avatar_url" class="w-7 h-7 rounded-full">
-                    <div>
-                        <p class="font-medium text-slate-800" x-text="emp.full_name"></p>
-                        <p class="text-xs text-slate-400" x-text="emp.position"></p>
-                    </div>
-                </button>
-            </template>
-        </div>
-    </div>
-    {{-- ID-ni parent form-a ötür --}}
-    <span x-effect="newTask.assigned_by_id = selected ? selected.id : null"></span>
-</div>
-
-                <div class="flex flex-wrap gap-4">
-                    <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input type="checkbox" x-model="newTask.require_approval" class="rounded">
-                        Təsdiq tələb olunur
-                    </label>
-                    {{-- <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input type="checkbox" x-model="newTask.deadline_locked" class="rounded">
-                        Deadline kilidli
-                    </label> --}}
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2">
@@ -393,11 +271,43 @@
                             class="px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-100 rounded-xl">Ləğv et</button>
                     <button type="submit" :disabled="creating"
                             class="px-5 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-xl disabled:opacity-60">
-                        <span x-show="!creating">Yarat</span>
-                        <span x-show="creating">Yaradılır...</span>
+                        <span x-text="creating ? 'Yaradılır...' : 'Yarat'"></span>
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- Task modal (detail) --}}
+    <div x-show="taskModalOpen" x-transition.opacity
+         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div @click.stop x-transition.scale
+             class="bg-slate-900 text-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                <div class="min-w-0">
+                    <h2 class="font-semibold truncate" x-text="taskDetail?.title || 'Tapşırıq'"></h2>
+                    <p class="text-xs text-white/60" x-text="taskDetail?.space?.name || ''"></p>
+                </div>
+                <button @click="closeTaskModal()" class="text-white/60 hover:text-white">✕</button>
+            </div>
+            <div class="grid grid-cols-12 gap-0">
+                <div class="col-span-12 lg:col-span-8 p-6 space-y-4">
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <span class="px-2 py-1 rounded-full bg-white/10" x-text="statusLabel(taskDetail?.status)"></span>
+                        <span class="px-2 py-1 rounded-full bg-white/10" x-text="priorityLabel(taskDetail?.priority)"></span>
+                        <span class="px-2 py-1 rounded-full bg-white/10" x-text="taskDetail?.due_date ? ('⏰ ' + formatDate(taskDetail?.due_date)) : ''"></span>
+                    </div>
+                    <div class="text-sm text-white/80 whitespace-pre-wrap" x-text="taskDetail?.description || '—'"></div>
+                </div>
+                <div class="col-span-12 lg:col-span-4 bg-white/5 p-6">
+                    <p class="text-xs text-white/60 mb-2">Şərhlər</p>
+                    <div class="h-56 rounded-xl bg-white/5"></div>
+                    <div class="mt-3">
+                        <input x-model="quickComment" placeholder="Şərh yazın"
+                               class="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-sm placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -405,126 +315,49 @@
 
 @push('scripts')
 <script>
-function kanban(spaceId) {
+function spaceHub(spaceId) {
     return {
         spaceId,
-        groupedTasks: {},
         canCreateBoard: false,
-        canManageMembers: false,
-        membersOpen: false,
-        membersLoading: false,
-        members: [],
-        boardsOpen: false,
         boardsLoading: false,
         boards: [],
         showCreateBoardModal: false,
         savingBoard: false,
         boardError: '',
         newBoard: { name: '', description: '' },
-        filters: { status:'', priority:'', due_soon:false, overdue:false },
-        columns: [
-            { status:'todo',                label:'Görüləcək',       icon:'📋' },
-            { status:'in_progress',         label:'İcra olunur',     icon:'🔄' },
-            { status:'waiting_for_approve', label:'Təsdiq gözləyir', icon:'⏳' },
-            { status:'completed',           label:'Tamamlandı',      icon:'✅' },
-            { status:'canceled',            label:'Ləğv olundu',     icon:'❌' },
-        ],
+
         showCreateModal: false,
         creating: false,
         newTask: { title:'', description:'', priority:'medium', visibility:'all_members', start_date: new Date().toISOString().split('T')[0], due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false, assigned_by_id: null },
-        sortables: [],
-        countdown: 30,
-        _pollTimer: null,
-        _countTimer: null,
+        myTasksLoading: false,
+        myTasks: [],
+        spaceGrouped: {},
+        boardFilters: { days: '7', overdue: false },
+        draggedTask: null,
+
+        taskModalOpen: false,
+        taskDetail: null,
+        taskLoading: false,
+        quickComment: '',
+        statusSections: [
+            { key:'in_progress',         label:'İcra olunur',       headerClass:'bg-blue-600' },
+            { key:'waiting_for_approve', label:'Təsdiq gözləyir',   headerClass:'bg-purple-600' },
+            { key:'completed',           label:'Tamamlandı',        headerClass:'bg-emerald-600' },
+            { key:'todo',                label:'Görüləcək',         headerClass:'bg-slate-600' },
+            { key:'canceled',            label:'Ləğv olundu',        headerClass:'bg-rose-600' },
+        ],
 
         async init() {
             await this.loadSpacePermissions();
-            await this.loadTasks();
-            this.initDragDrop();
-            this.startPolling();
+            await Promise.all([this.loadBoards(), this.loadMyTasks(), this.loadSpaceGrouped()]);
         },
 
         async loadSpacePermissions() {
             try {
                 const res = await api('GET', `/spaces/${this.spaceId}`);
                 this.canCreateBoard = !!res?.can?.create_board;
-                this.canManageMembers = !!res?.can?.manage_members;
             } catch (e) {
                 this.canCreateBoard = false;
-                this.canManageMembers = false;
-            }
-        },
-
-        async openMembers() {
-            if (!this.canManageMembers) return;
-            this.membersOpen = true;
-            await this.loadMembers();
-        },
-
-        async loadMembers() {
-            this.membersLoading = true;
-            try {
-                const res = await api('GET', `/spaces/${this.spaceId}/members`);
-                this.members = res.data || [];
-            } catch (e) {
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
-            } finally {
-                this.membersLoading = false;
-            }
-        },
-
-        async updateMemberPermission(member, checked) {
-            if (!member?.id) return;
-            try {
-                await api('POST', `/spaces/${this.spaceId}/members`, {
-                    employee_id: member.id,
-                    space_role: member.space_role || 'employee',
-                    is_manager: !!member.is_manager,
-                    can_create_boards: !!checked,
-                });
-                member.can_create_boards = !!checked;
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Səlahiyyət yeniləndi', type:'success' } }));
-            } catch (e) {
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
-                await this.loadMembers();
-            }
-        },
-
-        // ── Polling: hər 30 saniyə board-u yenilə ──────────────────────
-        startPolling() {
-            this._pollTimer = setInterval(async () => {
-                await this.loadTasks();
-                this.$nextTick(() => this.initDragDrop());
-                this.countdown = 30;
-            }, 30_000);
-
-            // Geri sayım
-            this._countTimer = setInterval(() => {
-                this.countdown = Math.max(0, this.countdown - 1);
-            }, 1_000);
-        },
-
-        async loadTasks() {
-            try {
-                const params = new URLSearchParams({ grouped: true });
-                if (this.filters.status)   params.set('status',   this.filters.status);
-                if (this.filters.priority) params.set('priority', this.filters.priority);
-                if (this.filters.due_soon) params.set('due_soon', 1);
-                if (this.filters.overdue)  params.set('overdue',  1);
-
-                const data = await api('GET', `/spaces/${this.spaceId}/tasks?${params}`);
-                this.columns.forEach(c => {
-                    this.groupedTasks[c.status] = data[c.status] || [];
-                });
-            } catch(e) {
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
-            }
-        },
-
-        async toggleBoards() {
-            this.boardsOpen = !this.boardsOpen;
-            if (this.boardsOpen) {
-                await this.loadBoards();
             }
         },
 
@@ -537,6 +370,29 @@ function kanban(spaceId) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
             } finally {
                 this.boardsLoading = false;
+            }
+        },
+
+        async loadMyTasks() {
+            this.myTasksLoading = true;
+            try {
+                const res = await api('GET', `/spaces/${this.spaceId}/tasks?created_by=${AUTH_USER.id}`);
+                this.myTasks = Array.isArray(res) ? res : (res?.data || []);
+            } catch(e) {
+                this.myTasks = [];
+            } finally {
+                this.myTasksLoading = false;
+            }
+        },
+
+        async loadSpaceGrouped() {
+            try {
+                const params = new URLSearchParams({ grouped: true });
+                if (this.boardFilters.overdue) params.set('overdue', 1);
+                const data = await api('GET', `/spaces/${this.spaceId}/tasks?${params}`);
+                this.spaceGrouped = data || {};
+            } catch(e) {
+                this.spaceGrouped = {};
             }
         },
 
@@ -561,55 +417,22 @@ function kanban(spaceId) {
             }
         },
 
-initDragDrop() {
-    this.$nextTick(() => {
-        this.sortables.forEach(s => { try { s.destroy(); } catch(e) {} });
-        this.sortables = [];
+        onDragTaskStart(task) {
+            this.draggedTask = task;
+        },
 
-        this.columns.forEach(col => {
-            const el = document.getElementById(`col-${col.status}`);
-            if (!el) return;
-
-            if (el._sortable) { try { el._sortable.destroy(); } catch(e) {} }
-
-            const s = Sortable.create(el, {
-                group:       'kanban',
-                animation:   150,
-                ghostClass:  'sortable-ghost',
-                chosenClass: 'sortable-chosen',
-                handle:      '.kanban-card',
-                onEnd: (evt) => {
-                    const taskId    = parseInt(evt.item.dataset.taskId);
-                    const newStatus = evt.to.dataset.status;
-                    const oldStatus = evt.from.dataset.status;
-                    if (newStatus && newStatus !== oldStatus) {
-                        this.moveTask(taskId, newStatus);
-                    }
-                }
-            });
-
-            el._sortable = s;
-            this.sortables.push(s);
-        });
-    });
-
-
-
-},
-
-async moveTask(taskId, newStatus) {
-    try {
-        await api('PATCH', `/tasks/${taskId}/order`, { status: newStatus });
-        window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Status dəyişdirildi', type:'success' } }));
-    } catch(e) {
-        window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
-    } finally {
-        await this.loadTasks();
-        this.$nextTick(() => this.initDragDrop());
-    }
-},
-
-        openTask(id) { window.location.href = `/tasks/${id}`; },
+        async onDropToBoard(boardId) {
+            if (!this.draggedTask?.id) return;
+            try {
+                await api('PATCH', `/tasks/${this.draggedTask.id}/move`, { board_id: boardId });
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq board-a əlavə olundu', type:'success' } }));
+                await Promise.all([this.loadMyTasks(), this.loadBoards(), this.loadSpaceGrouped()]);
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            } finally {
+                this.draggedTask = null;
+            }
+        },
 
         openCreateTask() {
             this.newTask = { title:'', description:'', priority:'medium', visibility:'all_members', start_date: new Date().toISOString().split('T')[0], due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false };
@@ -622,87 +445,78 @@ async moveTask(taskId, newStatus) {
             try {
                 await api('POST', `/spaces/${this.spaceId}/tasks`, this.newTask);
                 this.showCreateModal = false;
-                await this.loadTasks();
-                this.$nextTick(() => this.initDragDrop());
+                await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped(), this.loadBoards()]);
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq yaradıldı!', type:'success' } }));
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
             } finally { this.creating = false; }
         },
 
-        async approveTask(task) {
+        async openTaskModal(id) {
+            this.taskModalOpen = true;
+            this.taskDetail = null;
+            this.taskLoading = true;
             try {
-                await api('PATCH', `/tasks/${task.id}/approve`);
-                await this.loadTasks();
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq təsdiqləndi!', type:'success' } }));
+                this.taskDetail = await api('GET', `/tasks/${id}`);
             } catch(e) {
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+                this.taskModalOpen = false;
+            } finally {
+                this.taskLoading = false;
             }
         },
 
-        priorityLabel(p) { return { low:'Aşağı', medium:'Orta', high:'Yüksək', urgent:'Təcili' }[p] || p; },
+        closeTaskModal() {
+            this.taskModalOpen = false;
+            this.taskDetail = null;
+            this.quickComment = '';
+        },
+
+        progressPercent(board) {
+            const total = Number(board?.tasks_count ?? 0);
+            const done  = Number(board?.completed_tasks_count ?? 0);
+            if (!total) return 0;
+            return Math.max(0, Math.min(100, Math.round((done / total) * 100)));
+        },
+
+        statusLabel(s) {
+            return {
+                todo: 'Görüləcək',
+                in_progress: 'İcra olunur',
+                waiting_for_approve: 'Təsdiq gözləyir',
+                completed: 'Tamamlandı',
+                canceled: 'Ləğv olundu',
+            }[s] || (s || '—');
+        },
+
+        priorityLabel(p) { return { low:'Aşağı', medium:'Orta', high:'Yüksək', urgent:'Təcili' }[p] || (p || ''); },
         formatDate(dt) {
             if (!dt) return '';
             return new Date(dt).toLocaleDateString('az-AZ', { day:'numeric', month:'short' });
         },
-        async deleteTask(task) {
-            if (!confirm(`"${task.title}" tapşırığını silmək istədiyinizə əminsiniz?`)) return;
-            try {
-                await api('DELETE', `/tasks/${task.id}`);
-                await this.loadTasks();
-                this.$nextTick(() => this.initDragDrop());
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq silindi', type:'success' } }));
-            } catch(e) {
-                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message, type:'error' } }));
-            }
-        }
     }
 }
 
-// Employee axtarış komponenti
+// Employee axtarış komponenti (space filter dəstəyi ilə)
 function employeePicker(spaceId = null) {
     return {
         search: '', results: [], selected: [], open: false, spaceId,
         init() {},
         async searchEmployees() {
-            if (this.search.length < 2) { this.results = []; return; }
+            if ((this.search || '').length < 2) { this.results = []; return; }
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.search)}`;
                 if (this.spaceId) url += `&space_id=${this.spaceId}`;
-                const data   = await api('GET', url);
-                this.results = data.filter(e => !this.selected.find(s => s.id === e.id));
-            } catch(e) {}
+                const data = await api('GET', url);
+                const arr  = Array.isArray(data) ? data : (data?.data || []);
+                this.results = arr.filter(e => !this.selected.find(s => s.id === e.id));
+            } catch(e) { this.results = []; }
         },
         select(emp) {
             if (!this.selected.find(s => s.id === emp.id)) this.selected.push(emp);
             this.search = ''; this.results = []; this.open = false;
         },
         remove(id) { this.selected = this.selected.filter(e => e.id !== id); }
-    }
-}
-
-function assignedByPicker() {
-    return {
-        search: '',
-        results: [],
-        selected: null,
-        open: false,
-        async init() {},
-        async searchEmployees() {
-            if (this.search.length < 1) { this.results = []; return; }
-            const res = await fetch(`/api/employees/search?q=${this.search}`, {
-                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
-            });
-            this.results = await res.json();
-            this.open = true;
-        },
-        pick(emp) {
-            this.selected = emp;
-            this.search = '';
-            this.results = [];
-            this.open = false;
-        },
-        clear() { this.selected = null; }
     }
 }
 </script>

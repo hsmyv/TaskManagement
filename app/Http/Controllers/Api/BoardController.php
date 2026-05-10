@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\BoardResource;
 use App\Models\Board;
 use App\Models\Space;
+use App\Models\Task;
 use App\Services\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,10 @@ class BoardController extends Controller
         $employee = $request->user();
 
         $query = $space->boards()
-            ->withCount('lists')
+            ->withCount('tasks')
+            ->withCount([
+                'tasks as completed_tasks_count' => fn ($q) => $q->where('status', Task::STATUS_COMPLETED),
+            ])
             ->orderBy('created_at', 'desc');
 
         // Default: only boards where the user is a board member
@@ -67,28 +71,11 @@ class BoardController extends Controller
 
         $board->members()->sync($memberIds);
 
-        // Create default lists
-        $defaults = [
-            ['title' => 'To Do', 'type' => 'todo', 'position' => 0],
-            ['title' => 'In Progress', 'type' => 'in_progress', 'position' => 1],
-            ['title' => 'Done', 'type' => 'done', 'position' => 2],
-            ['title' => 'Rejected', 'type' => 'rejected', 'position' => 3],
-        ];
-
-        foreach ($defaults as $d) {
-            $board->lists()->create([
-                'title' => $d['title'],
-                'type' => $d['type'],
-                'position' => $d['position'],
-                'created_by' => $request->user()->id,
-            ]);
-        }
-
         $logger->log($request->user(), 'create', 'board', $board->id, $space, $board, [
             'name' => $board->name,
         ]);
 
-        $board->load(['lists.tasks.assignees', 'space']);
+        $board->load(['space']);
 
         return response()->json([
             'data' => new BoardResource($board),
@@ -99,16 +86,18 @@ class BoardController extends Controller
     {
         $this->authorize('view', $board);
 
+        $board->loadCount([
+            'tasks',
+            'tasks as completed_tasks_count' => fn ($q) => $q->where('status', Task::STATUS_COMPLETED),
+        ]);
+
         $board->load([
             'space',
-            'lists' => function ($q) {
-                $q->orderBy('position');
-            },
-            'lists.tasks' => function ($q) {
+            'tasks' => function ($q) {
                 $q->whereNull('parent_task_id')
+                    ->with(['assignees'])
                     ->orderBy('board_position');
             },
-            'lists.tasks.assignees',
         ]);
 
         return response()->json([

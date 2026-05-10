@@ -34,7 +34,6 @@ class Task extends Model
         'description',
         'space_id',
         'board_id',
-        'board_list_id',
         'board_position',
         'parent_task_id',
         'status',
@@ -69,11 +68,6 @@ class Task extends Model
     public function board(): BelongsTo
     {
         return $this->belongsTo(Board::class);
-    }
-
-    public function boardList(): BelongsTo
-    {
-        return $this->belongsTo(BoardList::class, 'board_list_id');
     }
 
     /**
