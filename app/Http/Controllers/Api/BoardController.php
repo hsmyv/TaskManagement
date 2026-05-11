@@ -13,33 +13,29 @@ use Illuminate\Http\Request;
 
 class BoardController extends Controller
 {
-    public function index(Request $request, Space $space): JsonResponse
-    {
-        $this->authorize('view', $space);
+public function index(Space $space): JsonResponse
+{
+    $this->authorize('view', $space);
 
-        $employee = $request->user();
+    $boards = $space->boards()
+        ->with([
+            'tasks.assignees',
+        ])
+        ->withCount([
+            'tasks',
+            'tasks as todo_tasks_count' => fn ($q) => $q->where('status', 'todo'),
+            'tasks as in_progress_tasks_count' => fn ($q) => $q->where('status', 'in_progress'),
+            'tasks as waiting_for_approve_tasks_count' => fn ($q) => $q->where('status', 'waiting_for_approve'),
+            'tasks as completed_tasks_count' => fn ($q) => $q->where('status', 'completed'),
+            'tasks as canceled_tasks_count' => fn ($q) => $q->where('status', 'canceled'),
+        ])
+        ->latest()
+        ->get();
 
-        $query = $space->boards()
-            ->withCount('tasks')
-            ->withCount([
-                'tasks as completed_tasks_count' => fn ($q) => $q->where('status', Task::STATUS_COMPLETED),
-            ])
-            ->orderBy('created_at', 'desc');
-
-        // Default: only boards where the user is a board member
-        // Managers / board-creators (space-level) can see all boards in the space.
-        if (!($employee->hasGlobalAccess() || $employee->isSpaceManager($space) || $employee->canCreateBoardsInSpace($space))) {
-            $query->whereHas('members', function ($q) use ($employee) {
-                $q->where('employees.id', $employee->id);
-            });
-        }
-
-        $boards = $query->get();
-
-        return response()->json([
-            'data' => $boards,
-        ]);
-    }
+    return response()->json([
+        'data' => $boards
+    ]);
+}
 
     public function store(Request $request, Space $space, ActivityLogger $logger): JsonResponse
     {

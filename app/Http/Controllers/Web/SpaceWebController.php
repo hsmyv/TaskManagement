@@ -21,9 +21,18 @@ class SpaceWebController extends Controller
         return view('spaces.index');
     }
 
-    public function show(Space $space): View
-    {
-        $this->authorize('view', $space);
-        return view('spaces.show', compact('space'));
-    }
+public function show(Space $space): View
+{
+    $this->authorize('view', $space);
+
+    $space->load([
+        'department',
+        'manager',
+        'members',
+        'boards' => fn ($query) => $query->withCount('tasks')->latest(),
+        'tasks' => fn ($query) => $query->with(['assignees', 'board'])->latest(),
+    ])->loadCount(['members', 'boards', 'tasks']);
+
+    return view('spaces.show', compact('space'));
+}
 }

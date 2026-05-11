@@ -46,6 +46,9 @@
 </head>
 <body class="h-full bg-slate-50 font-sans antialiased" x-cloak>
 
+@php($isAdminView = request()->routeIs('admin.*'))
+
+@if($isAdminView)
 <div class="flex h-full">
 
     {{-- Sidebar --}}
@@ -63,59 +66,35 @@
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
             </a>
-            @can('admin.access')
-<div x-data="{ open: true }">
-    <button @click="open = !open"
-        class="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors mt-4">
-        <span>Admin Panel</span>
-        <svg class="w-3 h-3 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
-    <div x-show="open" x-transition class="space-y-0.5">
-        <a href="{{ route('admin.spaces') }}"
-           class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.spaces') ? 'bg-slate-800 text-white' : '' }}">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            Space-lər
-        </a>
-        <a href="{{ route('admin.employees') }}"
-           class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.employees') ? 'bg-slate-800 text-white' : '' }}">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            Əməkdaşlar
-        </a>
-        <a href="{{ route('admin.roles') }}"
-           class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.roles') ? 'bg-slate-800 text-white' : '' }}">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            Rollar
-        </a>
-    </div>
-</div>
-@endcan
 
+            @can('admin.access')
             <div x-data="{ open: true }">
                 <button @click="open = !open"
-                    class="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors mt-2">
-                    <span>Team Spaces</span>
-                    <svg class="w-3 h-3 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    class="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors mt-4">
+                    <span>Admin Panel</span>
+                    <svg class="w-3 h-3 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
                 </button>
-                <div x-show="open" x-transition>
-                    @foreach(auth()->user()->hasGlobalAccess() ? \App\Models\Space::where('is_active',true)->get() : auth()->user()->spaces as $space)
-                    <a href="{{ route('spaces.show', $space) }}"
-                       class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm mt-0.5 {{ request()->routeIs('spaces.show') && request()->route('space')?->id === $space->id ? 'bg-slate-800 text-white' : '' }}">
-                        <span class="w-2 h-2 rounded-full shrink-0" style="background: {{ $space->color }}"></span>
-                        {{ $space->name }}
+                <div x-show="open" x-transition class="space-y-0.5">
+                    <a href="{{ route('admin.spaces') }}"
+                       class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.spaces') ? 'bg-slate-800 text-white' : '' }}">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        Space-lər
                     </a>
-                    @endforeach
-
-                    @can('create', \App\Models\Space::class)
-                    <button x-data @click="$dispatch('open-create-space')"
-                        class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:text-slate-300 transition-colors text-sm mt-1 w-full">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        Yeni Space
-                    </button>
-                    @endcan
+                    <a href="{{ route('admin.employees') }}"
+                       class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.employees') ? 'bg-slate-800 text-white' : '' }}">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        Əməkdaşlar
+                    </a>
+                    <a href="{{ route('admin.roles') }}"
+                       class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.roles') ? 'bg-slate-800 text-white' : '' }}">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        Rollar
+                    </a>
                 </div>
             </div>
+            @endcan
         </nav>
 
         <div class="px-4 py-4 border-t border-slate-700" x-data="{ open: false }">
@@ -136,14 +115,11 @@
         </div>
     </aside>
 
-    {{-- Main --}}
     <div class="flex-1 flex flex-col min-h-screen overflow-hidden">
-
         <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-40">
             <h1 class="text-lg font-semibold text-slate-800">@yield('page-title', 'Dashboard')</h1>
 
             <div class="flex items-center gap-3">
-                {{-- Bildirişlər --}}
                 <div x-data="notificationBell()" x-init="init()" class="relative">
                     <button @click="open = !open; if(open) loadNotifications()"
                             class="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
@@ -151,8 +127,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                         </svg>
                         <span x-show="unread > 0" x-text="unread > 99 ? '99+' : unread"
-                              class="pulse-dot absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                        </span>
+                              class="pulse-dot absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"></span>
                     </button>
 
                     <div x-show="open" x-transition @click.outside="open=false"
@@ -170,20 +145,14 @@
                                      class="flex gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 transition-colors"
                                      :class="!n.is_read ? 'bg-blue-50/40' : ''">
                                     <div class="flex-col shrink-0 items-center justify-start pt-1">
-                                        {{-- Event tipinə görə emoji ikona --}}
                                         <span class="text-base" x-text="notificationIcon(n)"></span>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        {{-- Kim nə etdi — əsas mətn --}}
                                         <p class="text-sm text-slate-700 leading-snug" x-text="notificationText(n)"></p>
-                                        {{-- Space adı --}}
                                         <p class="text-xs text-blue-500 mt-0.5" x-show="n.data?.space_name" x-text="'📁 ' + (n.data?.space_name ?? '')"></p>
-                                        {{-- Tarix --}}
                                         <p class="text-xs text-slate-400 mt-0.5" x-text="formatDate(n.created_at)"></p>
                                     </div>
-                                    {{-- Oxunmamış nöqtə --}}
-                                    <div class="w-2 h-2 rounded-full mt-1.5 shrink-0"
-                                         :class="!n.is_read ? 'bg-blue-500' : 'bg-transparent'"></div>
+                                    <div class="w-2 h-2 rounded-full mt-1.5 shrink-0" :class="!n.is_read ? 'bg-blue-500' : 'bg-transparent'"></div>
                                 </div>
                             </template>
                         </div>
@@ -197,6 +166,85 @@
         </main>
     </div>
 </div>
+@else
+<div class="min-h-screen flex flex-col bg-[#b8b0c3] overflow-hidden">
+    <header class="relative z-40 bg-gradient-to-r from-[#132e69] via-[#1b2960] to-[#39245f] shadow-[0_10px_30px_rgba(10,18,48,0.35)]">
+        <div class="h-[74px] px-6 lg:px-8 flex items-center justify-between">
+            <div class="flex items-center gap-4 min-w-0">
+                <div class="h-12 w-20 rounded-xl bg-[#0d2757] shadow-inner flex items-center justify-center text-[#6fb3ff] font-extrabold text-3xl tracking-tight">TIS</div>
+                <div class="hidden md:block text-white/90">
+                    <p class="text-lg font-medium leading-none">@yield('page-title', 'Tapşırıq İdarəetmə Sistemi')</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div x-data="notificationBell()" x-init="init()" class="relative">
+                    <button @click="open = !open; if(open) loadNotifications()"
+                            class="relative p-2 rounded-full text-white hover:bg-white/10 transition-colors">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <span x-show="unread > 0" x-text="unread > 99 ? '99+' : unread"
+                              class="pulse-dot absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"></span>
+                    </button>
+
+                    <div x-show="open" x-transition @click.outside="open=false"
+                         class="absolute right-0 top-12 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-3 border-b">
+                            <h3 class="font-semibold text-slate-800">Bildirişlər</h3>
+                            <button @click="markAllRead()" class="text-xs text-blue-600 hover:underline">Hamısını oxu</button>
+                        </div>
+                        <div class="max-h-96 overflow-y-auto scrollbar-thin">
+                            <template x-if="notifications.length === 0">
+                                <div class="py-8 text-center text-slate-400 text-sm">Bildiriş yoxdur</div>
+                            </template>
+                            <template x-for="n in notifications" :key="n.id">
+                                <div @click="markRead(n)"
+                                     class="flex gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 transition-colors"
+                                     :class="!n.is_read ? 'bg-blue-50/40' : ''">
+                                    <div class="flex-col shrink-0 items-center justify-start pt-1">
+                                        <span class="text-base" x-text="notificationIcon(n)"></span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-slate-700 leading-snug" x-text="notificationText(n)"></p>
+                                        <p class="text-xs text-blue-500 mt-0.5" x-show="n.data?.space_name" x-text="'📁 ' + (n.data?.space_name ?? '')"></p>
+                                        <p class="text-xs text-slate-400 mt-0.5" x-text="formatDate(n.created_at)"></p>
+                                    </div>
+                                    <div class="w-2 h-2 rounded-full mt-1.5 shrink-0" :class="!n.is_read ? 'bg-blue-500' : 'bg-transparent'"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-data="{ open: false }" class="relative">
+                    <button @click="open = !open"
+                            class="flex items-center gap-3 rounded-full pl-4 pr-1 py-1 text-white hover:bg-white/10 transition-colors">
+                        <span class="hidden sm:block text-base font-medium">{{ auth()->user()->full_name }}</span>
+                        <img src="{{ auth()->user()->avatar_url }}" alt="" class="w-11 h-11 rounded-full ring-2 ring-white/30 object-cover">
+                    </button>
+
+                    <div x-show="open" x-transition @click.outside="open=false"
+                         class="absolute right-0 top-14 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50">
+                        <div class="px-4 py-3 border-b border-slate-100">
+                            <p class="text-sm font-semibold text-slate-800">{{ auth()->user()->full_name }}</p>
+                            <p class="text-xs text-slate-500 mt-1">{{ auth()->user()->position }}</p>
+                        </div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Çıxış</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-auto">
+        @yield('content')
+    </main>
+</div>
+@endif
 
 {{-- ── Create Space Modal ─────────────────────────────────────────────────── --}}
 <div x-data="createSpaceModal()"
