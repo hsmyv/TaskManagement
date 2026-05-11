@@ -157,6 +157,16 @@
             </div>
 
             <div class="p-6 space-y-4">
+                <div>
+    <label class="block text-sm font-medium text-slate-700 mb-2">Space rəhbəri</label>
+    <select x-model="form.manager_employee_id"
+            class="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        <option value="">— Seçin —</option>
+        <template x-for="employee in allEmployees" :key="employee.id">
+            <option :value="employee.id" x-text="employee.full_name"></option>
+        </template>
+    </select>
+</div>
                 {{-- Ad --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Ad <span class="text-red-500">*</span></label>
@@ -164,6 +174,7 @@
                            placeholder="Space adı..."
                            class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 </div>
+
                 {{-- Təsvir --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Təsvir</label>
@@ -453,7 +464,7 @@ function adminSpaces() {
         openCreate() {
             this.editMode = false;
             this.error    = '';
-            this.form     = { name:'', description:'', color:'#3B82F6', department_id:'', is_active: true };
+            this.form     = { name:'', description:'', color:'#3B82F6', department_id:'', manager_employee_id:'', is_active: true };
             this.showForm = true;
         },
 
@@ -467,6 +478,7 @@ function adminSpaces() {
                 description:   space.description ?? '',
                 color:         space.color,
                 department_id: space.department_id ?? '',
+                manager_employee_id: space.manager_employee_id ?? space.manager?.id ?? '',
                 is_active:     space.is_active,
             };
             this.showForm = true;
@@ -483,6 +495,8 @@ function adminSpaces() {
                     description:   this.form.description || null,
                     color:         this.form.color,
                     department_id: this.form.department_id || null,
+                    manager_employee_id: this.form.manager_employee_id || null,
+
                 };
 
                 if (this.editMode) {

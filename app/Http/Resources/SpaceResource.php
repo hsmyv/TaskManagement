@@ -12,6 +12,11 @@ class SpaceResource extends JsonResource
     {
         return [
             'id'            => $this->id,
+            'manager_employee_id' => $this->manager_employee_id,
+            'manager' => $this->whenLoaded('manager', fn () => [
+    'id' => $this->manager?->id,
+    'full_name' => $this->manager?->full_name,
+]),
             'name'          => $this->name,
             'slug'          => $this->slug,
             'description'   => $this->description,

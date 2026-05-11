@@ -28,57 +28,48 @@ class SpaceController extends Controller
         return response()->json(SpaceResource::collection($spaces));
     }
 
-    public function store(Request $request): JsonResponse
-    {
-        $this->authorize('create', Space::class);
+public function store(Request $request): JsonResponse
+{
+    $this->authorize('create', Space::class);
 
-        $data = $request->validate([
-            'name'          => 'required|string|max:100',
-            'description'   => 'nullable|string',
-            'color'         => 'nullable|string|size:7',
-            'icon'          => 'nullable|string|max:50',
-            'department_id' => 'required|exists:departments,id',
-            // Optional: allow admin to assign one manager while creating
-            'manager_employee_id' => 'nullable|exists:employees,id',
-        ]);
+    $data = $request->validate([
+        'name'                => 'required|string|max:100',
+        'description'         => 'nullable|string',
+        'color'               => 'nullable|string|size:7',
+        'icon'                => 'nullable|string|max:50',
+        'department_id'       => 'required|exists:departments,id',
+        'manager_employee_id' => 'nullable|exists:employees,id',
+    ]);
 
-        $data['created_by'] = $request->user()->id;
-        $data['slug']       = Str::slug($data['name']) . '-' . Str::random(4);
+    $data['created_by'] = $request->user()->id;
+    $data['slug'] = Str::slug($data['name']) . '-' . Str::random(4);
 
-        $space = Space::create($data);
+    $space = Space::create($data);
 
-        // Yaradan şəxs avtomatik senior_manager kimi əlavə olunur
-        $space->members()->attach($request->user()->id, [
+    // Space yaradan admin üzv olsun
+    $space->members()->syncWithoutDetaching([
+        $request->user()->id => [
             'space_role' => 'senior_manager',
             'is_manager' => false,
             'added_by'   => $request->user()->id,
+        ],
+    ]);
+
+    // Seçilən manager avtomatik üzv olsun
+    if (!empty($data['manager_employee_id'])) {
+        $space->members()->syncWithoutDetaching([
+            $data['manager_employee_id'] => [
+                'space_role' => 'senior_manager',
+                'is_manager' => true,
+                'added_by'   => $request->user()->id,
+            ],
         ]);
-
-        // Optional manager assignment (must be a member first)
-        if (!empty($data['manager_employee_id'])) {
-            $managerId = (int) $data['manager_employee_id'];
-
-            // Ensure the manager is a member (employee role by default)
-            $space->members()->syncWithoutDetaching([
-                $managerId => [
-                    'space_role' => 'employee',
-                    'is_manager' => true,
-                    'added_by'   => $request->user()->id,
-                ],
-            ]);
-
-            // Ensure only one manager per space
-            DB::table('space_members')
-                ->where('space_id', $space->id)
-                ->where('employee_id', '!=', $managerId)
-                ->update(['is_manager' => false]);
-        }
-
-        // attach-dan SONRA loadCount — düzgün say üçün
-        $space->loadCount('members')->load('department');
-
-        return response()->json(new SpaceResource($space), 201);
     }
+
+    $space->load(['department', 'manager'])->loadCount('members');
+
+    return response()->json(new SpaceResource($space), 201);
+}
 
     public function show(Request $request, Space $space): JsonResponse
     {
@@ -87,24 +78,54 @@ class SpaceController extends Controller
         return response()->json(new SpaceResource($space));
     }
 
-    public function update(Request $request, Space $space): JsonResponse
-    {
-        $this->authorize('update', $space);
+public function update(Request $request, Space $space): JsonResponse
+{
+    $this->authorize('update', $space);
 
-        $data = $request->validate([
-            'name'          => 'sometimes|string|max:100',
-            'description'   => 'nullable|string',
-            'color'         => 'nullable|string|size:7',
-            'icon'          => 'nullable|string|max:50',
-            'is_active'     => 'sometimes|boolean',
-            'department_id' => 'nullable|exists:departments,id',
-        ]);
+    $data = $request->validate([
+        'name'                => 'sometimes|string|max:100',
+        'description'         => 'nullable|string',
+        'color'               => 'nullable|string|size:7',
+        'icon'                => 'nullable|string|max:50',
+        'is_active'           => 'sometimes|boolean',
+        'department_id'       => 'nullable|exists:departments,id',
+        'manager_employee_id' => 'nullable|exists:employees,id',
+    ]);
 
-        $space->update($data);
-        $space->loadCount(['members', 'tasks'])->load('department');
+    $oldManagerId = $space->manager_employee_id;
 
-        return response()->json(new SpaceResource($space));
+    $space->update($data);
+
+    if (array_key_exists('manager_employee_id', $data)) {
+        $newManagerId = $data['manager_employee_id'];
+
+        // köhnə manager varsa, manager flag-ni sil
+        if ($oldManagerId) {
+            $space->members()->updateExistingPivot($oldManagerId, [
+                'is_manager' => false,
+            ]);
+        }
+
+        // yeni manager seçilibsə, onu member et və manager flag ver
+        if ($newManagerId) {
+            $space->members()->syncWithoutDetaching([
+                $newManagerId => [
+                    'space_role' => 'senior_manager',
+                    'is_manager' => true,
+                    'added_by'   => $request->user()->id,
+                ],
+            ]);
+
+            $space->members()->updateExistingPivot($newManagerId, [
+                'is_manager' => true,
+            ]);
+        }
     }
+
+    $space->loadCount(['members', 'tasks'])->load(['department', 'manager']);
+
+    return response()->json(new SpaceResource($space));
+}
 
     public function destroy(Request $request, Space $space): JsonResponse
     {

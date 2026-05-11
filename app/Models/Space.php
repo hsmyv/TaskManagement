@@ -23,6 +23,8 @@ class Space extends Model
         'is_active',
         'created_by',
         'department_id',
+        'manager_employee_id',
+
     ];
 
     protected function casts(): array
@@ -56,7 +58,10 @@ class Space extends Model
     {
         return $this->belongsTo(Department::class, 'department_id');
     }
-
+public function manager(): BelongsTo
+{
+    return $this->belongsTo(Employee::class, 'manager_employee_id');
+}
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(Employee::class, 'space_members', 'space_id', 'employee_id')
