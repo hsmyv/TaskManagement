@@ -56,11 +56,11 @@
                 <div class="space-y-8">
                     <div>
                         <div class="flex items-center justify-between mb-3">
-                            <h2 class="text-[18px] sm:text-[20px] font-medium">Tapşırıqlar</h2>
+                            <h2 class="text-[18px] sm:text-[20px] font-medium">Tapşırıqlarım</h2>
                             <button @click="openCreateTask()" class="w-11 h-11 rounded-2xl bg-[#0d254f] border border-white/10 flex items-center justify-center text-2xl leading-none hover:bg-[#113063] transition-all" title="Yeni tapşırıq">+</button>
                         </div>
 
-                        <div class="space-y-3 max-h-[420px] overflow-y-auto scrollbar-thin pr-1">
+                        <div class="space-y-3 max-h-[420px] ">
                             <template x-if="myTasksLoading">
                                 <div class="rounded-2xl border border-white/10 bg-[#1a2d63]/60 px-4 py-4 text-sm text-white/60">Tapşırıqlar yüklənir...</div>
                             </template>
@@ -123,7 +123,7 @@
                                @drop="onDropToBoard(b.id)">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
-                                        <h3 class="text-[19px] leading-tight font-medium truncate" x-text="b.name"></h3>
+                                        <h3 class="text-[19px] leading-tight font-medium truncate" x-text="b.name" :title="b.name"></h3>
                                         <p class="text-white/70 text-sm mt-1" x-text="b.description || ($space?->description ?? 'Departamentin işləri ilə bağlı tapşırıqlar və layihələr')"></p>
                                     </div>
                                     <span class="text-sm text-white/80" x-text="b.due_date ? formatDate(b.due_date) : '29/04'"></span>
@@ -146,9 +146,14 @@
                                 <div class="mt-6 flex items-end justify-between gap-3">
                                     <button type="button" @click.prevent="openCreateTask()" class="w-11 h-11 rounded-2xl bg-[#10325f] border border-white/10 flex items-center justify-center text-2xl hover:bg-[#0d274d] transition-all">+</button>
                                     <div class="flex -space-x-3" x-show="boardAssignees(b).length">
-                                        <template x-for="member in boardAssignees(b)" :key="`board-member-${b.id}-${member.id}`">
-                                            <img :src="member.avatar_url" :alt="member.full_name" :title="member.full_name" class="w-11 h-11 rounded-full object-cover ring-2 ring-[#2f67ad]">
-                                        </template>
+                                  <template x-for="member in boardAssignees(b)" :key="`board-member-${b.id}-${member.id}`">
+                                        <img
+                                            :src="member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=2f67ad&color=fff`"
+                                            :alt="member.name"
+                                            :title="member.name"
+                                            class="w-11 h-11 rounded-full object-cover ring-2 ring-[#2f67ad]"
+                                        >
+                                    </template>
                                     </div>
                                     <div x-show="!boardAssignees(b).length" class="text-xs text-white/65">Məsul şəxs yoxdur</div>
                                 </div>
@@ -293,24 +298,7 @@
                     <label class="block text-sm font-medium text-white/80 mb-1">Təsvir</label>
                     <textarea x-model="newTask.description" rows="3" placeholder="Ətraflı təsvir..." class="w-full rounded-xl px-4 py-3 tis-input resize-none"></textarea>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Prioritet</label>
-                        <select x-model="newTask.priority" class="w-full h-12 rounded-xl px-4 tis-input">
-                            <option value="low">Aşağı</option>
-                            <option value="medium">Orta</option>
-                            <option value="high">Yüksək</option>
-                            <option value="urgent">Təcili</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Görünürlük</label>
-                        <select x-model="newTask.visibility" class="w-full h-12 rounded-xl px-4 tis-input">
-                            <option value="all_members">Bütün üzvlər</option>
-                            <option value="managers_only">Yalnız menecerlər</option>
-                        </select>
-                    </div>
-                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Başlama tarixi</label>
@@ -321,6 +309,16 @@
                         <input type="date" x-model="newTask.due_date" class="w-full h-12 rounded-xl px-4 tis-input">
                     </div>
                 </div>
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Prioritet</label>
+                        <select x-model="newTask.priority" class="w-full h-12 rounded-xl px-4 tis-input">
+                            <option value="low">Aşağı</option>
+                            <option value="medium">Orta</option>
+                            <option value="high">Yüksək</option>
+                            <option value="urgent">Təcili</option>
+                        </select>
+                    </div>
+
                 <div x-data="employeePicker(spaceId)" x-init="init()">
                     <label class="block text-sm font-medium text-white/80 mb-1">Məsul şəxslər</label>
                     <input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true" placeholder="Ad ilə axtarın..." class="w-full h-12 rounded-xl px-4 tis-input">
@@ -346,6 +344,73 @@
                     </div>
                     <span x-effect="newTask.assignee_ids = selected.map(e => e.id)"></span>
                 </div>
+                <div x-data="employeePicker(null)" x-init="init([], true)">
+                    <label class="block text-sm font-medium text-white/80 mb-1">Kim tərəfindən (istəyə bağlı)</label>
+
+                    <div class="flex gap-2">
+                        <input
+                            type="text"
+                            x-model="search"
+                            @input.debounce.300ms="searchEmployees()"
+                            @focus="if (!results.length) loadAllEmployees()"
+                            placeholder="İşçini axtar..."
+                            class="w-full h-12 rounded-xl px-4 tis-input"
+                        >
+
+                        <button
+                            type="button"
+                            @click="loadAllEmployees()"
+                            class="px-4 rounded-xl bg-white/10 border border-white/10 hover:bg-white/15 text-sm"
+                        >
+                            Bax
+                        </button>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 mt-3" x-show="selected.length">
+                        <template x-for="emp in selected" :key="emp.id">
+                            <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-2 rounded-full border border-white/10">
+                                <img :src="emp.avatar_url" class="w-5 h-5 rounded-full object-cover">
+                                <span x-text="emp.full_name"></span>
+                                <button
+                                    type="button"
+                                    @click="
+                                        remove(emp.id);
+                                        newTask.assigned_by_id = null;
+                                    "
+                                    class="hover:text-red-300"
+                                >✕</button>
+                            </span>
+                        </template>
+                    </div>
+
+                    <div
+                        x-show="open"
+                        @click.outside="open = false"
+                        class="relative z-10 mt-2 bg-[#1d315f] border border-white/10 rounded-2xl shadow-2xl max-h-48 overflow-y-auto"
+                    >
+                        <template x-if="!results.length">
+                            <div class="px-4 py-3 text-sm text-white/60">Nəticə tapılmadı</div>
+                        </template>
+
+                        <template x-for="emp in results" :key="emp.id">
+                            <button
+                                type="button"
+                                @click="
+                                    select(emp);
+                                    newTask.assigned_by_id = emp.id;
+                                "
+                                class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left text-sm"
+                            >
+                                <img :src="emp.avatar_url" class="w-8 h-8 rounded-full object-cover">
+                                <div>
+                                    <p class="font-medium text-white" x-text="emp.full_name"></p>
+                                    <p class="text-xs text-white/45" x-text="emp.position"></p>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-end gap-3 pt-2">
                     <button type="button" @click="showCreateModal=false" class="px-5 py-2.5 text-sm bg-white/8 hover:bg-white/12 rounded-xl">Ləğv et</button>
                     <button type="submit" :disabled="creating" class="px-5 py-2.5 text-sm font-medium bg-[#6d44c5] hover:bg-[#613db1] rounded-xl disabled:opacity-60">
@@ -362,8 +427,15 @@
          class="w-full max-w-5xl h-[88vh] overflow-hidden rounded-[24px] bg-gradient-to-b from-[#1f397e] to-[#182d65] border border-white/10 shadow-tis text-white">
 
         <div class="px-5 py-4 flex items-center justify-between border-b border-white/10">
-            <div class="min-w-0">
-                <h2 class="text-[18px] sm:text-[22px] font-semibold truncate" x-text="taskDetail?.title || 'Tapşırıq'"></h2>
+           <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h2 class="text-[18px] sm:text-[22px] font-semibold truncate" x-text="taskDetail?.title || 'Tapşırıq'"></h2>
+                    <template x-if="taskDetail?.assigner?.full_name">
+                        <span class="text-sm text-white/65">
+                            - <span x-text="taskDetail.assigner.full_name"></span> tərəfindən
+                        </span>
+                    </template>
+                </div>
                 <p class="text-xs sm:text-sm text-white/55 mt-1" x-text="taskDetail?.space?.name || ''"></p>
             </div>
             <button @click="closeTaskModal()" class="text-white/60 hover:text-white text-lg">✕</button>
@@ -472,6 +544,7 @@
                                 <p x-text="taskDetail?.due_date ? formatDate(taskDetail.due_date) : '—'"></p>
                             </div>
                         </div>
+
 
                         <div x-show="editingTaskDates" class="space-y-3">
                             <input type="date" x-model="taskDateForm.start_date" class="w-full h-11 rounded-xl px-4 tis-input">
@@ -1130,24 +1203,80 @@ async updateChecklistItem(item) {
 
 function employeePicker(spaceId = null) {
     return {
-        search: '', results: [], selected: [], open: false, spaceId,
-        init() {},
+        search: '',
+        results: [],
+        selected: [],
+        open: false,
+        spaceId,
+        single: false,
+
+        init(initialSelected = [], single = false) {
+            this.single = single;
+            this.selected = Array.isArray(initialSelected) ? initialSelected : [];
+        },
+
         async searchEmployees() {
-            if ((this.search || '').length < 2) { this.results = []; return; }
+            if ((this.search || '').length < 2) {
+                this.results = [];
+                return;
+            }
+
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.search)}`;
                 if (this.spaceId) url += `&space_id=${this.spaceId}`;
+
                 const data = await api('GET', url);
                 const arr  = Array.isArray(data) ? data : (data?.data || []);
-                this.results = arr.filter(e => !this.selected.find(s => s.id === e.id));
-            } catch(e) { this.results = []; }
+
+                if (this.single) {
+                    this.results = arr;
+                } else {
+                    this.results = arr.filter(e => !this.selected.find(s => s.id === e.id));
+                }
+
+                this.open = true;
+            } catch (e) {
+                this.results = [];
+            }
         },
+
+        async loadAllEmployees() {
+            try {
+                const data = await api('GET', '/employees');
+                const arr  = Array.isArray(data) ? data : (data?.data || []);
+
+                if (this.single) {
+                    this.results = arr;
+                } else {
+                    this.results = arr.filter(e => !this.selected.find(s => s.id === e.id));
+                }
+
+                this.open = true;
+            } catch (e) {
+                this.results = [];
+            }
+        },
+
         select(emp) {
-            if (!this.selected.find(s => s.id === emp.id)) this.selected.push(emp);
-            this.search = ''; this.results = []; this.open = false;
+            if (this.single) {
+                this.selected = [emp];
+            } else {
+                if (!this.selected.find(s => s.id === emp.id)) {
+                    this.selected.push(emp);
+                }
+            }
+
+            this.search = '';
+            this.results = [];
+            this.open = false;
         },
-        remove(id) { this.selected = this.selected.filter(e => e.id !== id); }
+
+        remove(id) {
+            this.selected = this.selected.filter(e => e.id !== id);
+        }
     }
 }
+
+
 </script>
 @endpush

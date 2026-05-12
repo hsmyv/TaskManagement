@@ -41,6 +41,23 @@
         .status-canceled { background: #fef2f2; border-top: 3px solid #ef4444; }
         @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.5} }
         .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+        .tis-input{
+    background: rgba(255,255,255,0.96);
+    color: #0f172a;
+    border: 1px solid rgba(255,255,255,0.18);
+}
+.tis-input::placeholder{
+    color: #64748b;
+}
+.tis-input:focus{
+    outline: none;
+    border-color: rgba(255,255,255,0.32);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+}
+.tis-input option{
+    color: #0f172a;
+    background: #ffffff;
+}
 
     </style>
 </head>

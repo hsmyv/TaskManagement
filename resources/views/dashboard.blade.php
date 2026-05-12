@@ -5,81 +5,11 @@
 @section('content')
 <div class="p-6" x-data="dashboard()" x-init="load()">
 
-    {{-- Stats cards --}}
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <template x-for="stat in statCards" :key="stat.key">
-            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" :class="stat.bg">
-                        <span class="text-lg" x-text="stat.icon"></span>
-                    </div>
-                    <span class="text-2xl font-bold text-slate-800" x-text="stats[stat.key] ?? 0"></span>
-                </div>
-                <p class="text-sm font-medium text-slate-500" x-text="stat.label"></p>
-            </div>
-        </template>
-    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {{-- Tezliklə bitəcəklər --}}
-        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 class="font-semibold text-slate-800">⏰ Tezliklə bitəcək tapşırıqlar</h2>
-                <span class="text-xs text-slate-400">Son 7 gün</span>
-            </div>
-            <div class="divide-y divide-slate-50">
-                <template x-if="dueSoon.length === 0">
-                    <div class="py-10 text-center text-slate-400 text-sm">Heç bir tapşırıq yoxdur</div>
-                </template>
-                <template x-for="task in dueSoon" :key="task.id">
-                    <a :href="`/tasks/${task.id}`"
-                       class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors">
-                        <span class="w-2 h-2 rounded-full shrink-0"
-                              :class="{
-                                'bg-slate-400': task.priority==='low',
-                                'bg-blue-500': task.priority==='medium',
-                                'bg-orange-500': task.priority==='high',
-                                'bg-red-500': task.priority==='urgent'
-                              }"></span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-slate-800 truncate" x-text="task.title"></p>
-                            <p class="text-xs text-slate-400 mt-0.5" x-text="task.space?.name"></p>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <span class="text-xs font-medium px-2 py-1 rounded-lg"
-                                  :class="getDueDateClass(task.due_date)"
-                                  x-text="formatDate(task.due_date)"></span>
-                        </div>
-                    </a>
-                </template>
-            </div>
-        </div>
-
-        {{-- Gecikmiş tapşırıqlar --}}
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm">
-            <div class="px-5 py-4 border-b border-slate-100">
-                <h2 class="font-semibold text-slate-800">🔴 Gecikmiş tapşırıqlar</h2>
-            </div>
-            <div class="divide-y divide-slate-50">
-                <template x-if="overdue.length === 0">
-                    <div class="py-8 text-center text-slate-400 text-sm">Gecikmiş tapşırıq yoxdur 🎉</div>
-                </template>
-                <template x-for="task in overdue" :key="task.id">
-                    <a :href="`/tasks/${task.id}`"
-                       class="flex items-center gap-3 px-5 py-3 hover:bg-red-50 transition-colors">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-slate-800 truncate" x-text="task.title"></p>
-                            <p class="text-xs text-red-500 mt-0.5" x-text="'Son tarix: ' + formatDate(task.due_date)"></p>
-                        </div>
-                    </a>
-                </template>
-            </div>
-        </div>
-    </div>
 
     {{-- My Spaces --}}
     <div class="mt-6">
-        <h2 class="font-semibold text-slate-800 mb-4">📁 Mənim Space-lərim</h2>
+        <h2 class="font-semibold text-slate-800 mb-4">Departamentlər</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <template x-for="space in spaces" :key="space.id">
                 <a :href="`/spaces/${space.id}`"

@@ -65,7 +65,7 @@ class BoardTaskController extends Controller
 
     public function move(Request $request, Task $task, ActivityLogger $logger): JsonResponse
     {
-        $this->authorize('update', $task);
+        $this->authorize('move', $task);
 
         $validated = $request->validate([
             'board_id' => ['nullable', 'integer', 'exists:boards,id'],

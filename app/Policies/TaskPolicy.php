@@ -122,4 +122,19 @@ public function update(Employee $employee, Task $task): bool
 
         return $task->created_by === $employee->id;
     }
+
+    public function move(Employee $employee, Task $task): bool
+{
+    if ($employee->hasGlobalAccess()) {
+        return true;
+    }
+
+    if (!$employee->isMemberOf($task->space)) {
+        return false;
+    }
+
+    return $task->created_by === $employee->id
+        || $task->isAssignee($employee)
+        || $employee->isSpaceManager($task->space);
+}
 }

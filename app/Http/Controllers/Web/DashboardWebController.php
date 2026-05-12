@@ -14,19 +14,19 @@ use Illuminate\View\View;
 
 class DashboardWebController extends Controller
 {
-    public function index(): View
+    public function index(): View|RedirectResponse
     {
         $employee = Auth::user();
 
-        // Departament müdiri (space manager) daxil olduqda birbaşa idarə etdiyi space açılsın
         if ($employee && !$employee->hasGlobalAccess()) {
-            $managedSpace = $employee->spaces()
-                ->wherePivot('is_manager', true)
+            $targetSpace = $employee->spaces()
+                ->where('spaces.is_active', true)
+                ->orderByDesc('space_members.is_manager')
                 ->orderBy('spaces.id')
                 ->first();
 
-            if ($managedSpace) {
-                redirect()->route('spaces.show', $managedSpace)->send();
+            if ($targetSpace) {
+                return redirect()->route('spaces.show', $targetSpace);
             }
         }
 
