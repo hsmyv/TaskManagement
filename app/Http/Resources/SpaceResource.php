@@ -31,6 +31,7 @@ class SpaceResource extends JsonResource
             'department_id' => $this->department_id,
             'created_by'    => new EmployeeResource($this->whenLoaded('creator')),
             'members_count' => $this->whenCounted('members'),
+            'boards_count'  => $this->whenCounted('boards'),
             'tasks_count'   => $this->whenCounted('tasks'),
             'my_role'       => $this->when(
                 $request->user(),

@@ -19,7 +19,7 @@ class DashboardController extends Controller
 
         // ── Yalnız mənə aid tapşırıqlar (yaratdıqlarım + assign olunduqlarım) ──
         $myTasks = Task::forEmployee($employee)
-            ->with(['space', 'assignees'])
+            ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
             ->withCount('subtasks')
             ->whereNull('parent_task_id')
             ->get();
@@ -28,6 +28,7 @@ class DashboardController extends Controller
         if ($employee->hasGlobalAccess()) {
             // Admin / Executive — bütün space-lər, bütün tapşırıqlar
             $spaces = Space::withCount('members')
+                ->withCount('boards')
                 ->withCount('tasks')
                 ->where('is_active', true)
                 ->get();
@@ -36,6 +37,7 @@ class DashboardController extends Controller
             // tasks_count → yalnız həmin space-də mənə aid tapşırıqlar
             $spaces = $employee->spaces()
                 ->withCount('members')
+                ->withCount('boards')
                 ->withCount([
                     'tasks as tasks_count' => function ($query) use ($employee) {
                         $query->whereNull('parent_task_id')
@@ -44,6 +46,12 @@ class DashboardController extends Controller
                                   $q->where('created_by', $employee->id)
                                     ->orWhereHas('assignees', function ($a) use ($employee) {
                                         $a->where('employees.id', $employee->id);
+                                    })
+                                    ->orWhereHas('subtasks', function ($s) use ($employee) {
+                                        $s->where('created_by', $employee->id)
+                                          ->orWhereHas('assignees', function ($a) use ($employee) {
+                                              $a->where('employees.id', $employee->id);
+                                          });
                                     });
                               });
                     },
@@ -51,6 +59,38 @@ class DashboardController extends Controller
                 ->where('is_active', true)
                 ->get();
         }
+
+        $taskQuery = Task::query()
+            ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
+            ->withCount(['subtasks', 'attachments', 'comments'])
+            ->whereNull('parent_task_id')
+            ->forEmployee($employee);
+
+        if ($request->filled('space_id')) {
+            $taskQuery->where('space_id', $request->integer('space_id'));
+        }
+        if ($request->filled('status')) {
+            $taskQuery->where('status', $request->status);
+        }
+        if ($request->filled('priority')) {
+            $taskQuery->where('priority', $request->priority);
+        }
+        if ($request->boolean('overdue')) {
+            $taskQuery->overdue();
+        }
+        if ($request->filled('due_days')) {
+            $days = max(1, $request->integer('due_days', 7));
+            $taskQuery->whereNotNull('due_date')
+                ->where('due_date', '<=', now()->addDays($days)->toDateString());
+        }
+        if ($request->filled('q')) {
+            $taskQuery->where('title', 'like', "%{$request->q}%");
+        }
+
+        $tasks = $taskQuery->latest()->get();
+        $groupedTasks = $tasks
+            ->groupBy('status')
+            ->map(fn ($group) => TaskResource::collection($group)->resolve($request));
 
         return response()->json([
             'stats' => [
@@ -75,6 +115,8 @@ class DashboardController extends Controller
             ),
 
             'my_spaces' => SpaceResource::collection($spaces),
+            'tasks' => TaskResource::collection($tasks),
+            'grouped_tasks' => $groupedTasks,
 
             'unread_notifications' => Notification::where('employee_id', $employee->id)
                 ->unread()

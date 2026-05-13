@@ -44,7 +44,7 @@ class ChecklistController extends Controller
     {
         // Toggle etmək üçün task-ı görmək kifayətdir (məsul şəxs də işarələyə bilsin)
         $task = $checklist->task()->with('space')->firstOrFail();
-        $this->authorize('view', $task);
+        $this->authorize('toggleChecklist', $task);
 
         $checklist->update([
             'is_done'      => !$checklist->is_done,

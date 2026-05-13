@@ -3,6 +3,35 @@
 @section('page-title', $space->name)
 
 @section('content')
+<style>
+    .tis-modal-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: transparent transparent;
+    }
+    .tis-modal-scroll:hover,
+    .tis-modal-scroll:focus,
+    .tis-modal-scroll:focus-within {
+        scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+    }
+    .tis-modal-scroll::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    .tis-modal-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .tis-modal-scroll::-webkit-scrollbar-thumb {
+        background: transparent;
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+    .tis-modal-scroll:hover::-webkit-scrollbar-thumb,
+    .tis-modal-scroll:focus::-webkit-scrollbar-thumb,
+    .tis-modal-scroll:focus-within::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.28);
+    }
+</style>
 <div x-data="spaceHub({{ $space->id }})" x-init="init()" class="px-3 sm:px-4 lg:px-6 pt-4 sm:pt-5 space-y-5 text-white">
     @php($spaceMembers = $space->members->sortByDesc(fn($member) => (($member->pivot->is_manager ?? false) || $space->manager_employee_id === $member->id))->values())
     <section class="rounded-[28px] overflow-hidden shadow-tis border border-white/10 bg-[#1d346f]">
@@ -170,7 +199,12 @@
 
                     <div class="space-y-5 pt-2">
                         <template x-for="s in statusSections" :key="s.key">
-                            <section class="rounded-[24px] overflow-hidden shadow-tis border border-white/10 bg-gradient-to-b from-[#3a56a1] to-[#314b8c] text-white">
+                            <section class="rounded-[24px] overflow-hidden shadow-tis border border-white/10 bg-gradient-to-b from-[#3a56a1] to-[#314b8c] text-white transition-all"
+                                     :class="dragOverStatus === s.key ? (canDropOnStatus(s.key) ? 'ring-2 ring-[#7ee787] bg-gradient-to-b from-[#4163b8] to-[#36549c]' : 'ring-2 ring-[#ff6b6b] opacity-80') : ''"
+                                     @dragenter.prevent="dragOverStatus = s.key"
+                                     @dragover.prevent
+                                     @dragleave="if ($event.currentTarget === $event.target) dragOverStatus = null"
+                                     @drop.prevent="onDropToStatus(s.key)">
                                 <div class="px-6 pt-5 pb-2 flex items-center justify-between">
                                     <div class="flex items-center gap-3 text-[21px] sm:text-[24px] font-medium" :class="{
                                         'text-[#f3ad1e]': s.key === 'in_progress',
@@ -208,7 +242,12 @@
                                         </template>
 
                                         <template x-for="t in (spaceGrouped[s.key] || [])" :key="t.id">
-                                            <button type="button" @click="openTaskModal(t.id)" class="w-full text-left grid grid-cols-[2.2fr_1.6fr_1.1fr_1.2fr_1fr_0.8fr_1fr] gap-4 px-2 py-3 border-b border-white/10 hover:bg-white/5 transition-all items-center">
+                                            <button type="button" @click="openTaskModal(t.id)"
+                                                    draggable="true"
+                                                    @dragstart.stop="onDragStatusTaskStart(t, $event)"
+                                                    @dragend="onDragTaskEnd()"
+                                                    class="w-full text-left grid grid-cols-[2.2fr_1.6fr_1.1fr_1.2fr_1fr_0.8fr_1fr] gap-4 px-2 py-3 border-b border-white/10 hover:bg-white/5 transition-all items-center cursor-grab active:cursor-grabbing"
+                                                    :class="draggedTask?.id === t.id ? 'opacity-45 bg-white/10' : ''">
                                                 <div class="min-w-0 flex items-center gap-3">
                                                     <span class="w-3 h-3 rounded-full shrink-0" :class="{
                                                         'bg-[#f3ad1e]': s.key === 'in_progress',
@@ -242,8 +281,11 @@
                                                     </template>
                                                 </div>
                                                 <div class="flex items-center gap-2 truncate">
-                                                    <img src="{{ auth()->user()->avatar_url }}" class="w-8 h-8 rounded-full object-cover ring-2 ring-white/10">
-                                                    <span class="truncate">{{ auth()->user()->full_name }}</span>
+                                                    <img
+                                                        :src="t.creator?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.creator?.full_name || 'User')}&background=3B82F6&color=fff`"
+                                                        class="w-8 h-8 rounded-full object-cover ring-2 ring-white/10"
+                                                    >
+                                                    <span class="truncate" x-text="t.creator?.full_name || '—'"></span>
                                                 </div>
                                                 <div class="text-white/85" x-text="t.due_date ? formatDate(t.due_date) : '—'"></div>
                                                 <div class="text-white/85" x-text="priorityLabel(t.priority) || 'Normal'"></div>
@@ -435,6 +477,11 @@
                             - <span x-text="taskDetail.assigner.full_name"></span> tərəfindən
                         </span>
                     </template>
+                    <button x-show="canShowApprovePrompt(taskDetail)"
+                            @click="scrollToApproval()"
+                            class="text-xs sm:text-sm px-3 py-1.5 rounded-full bg-[#f3ad1e]/18 border border-[#f3ad1e]/50 text-[#ffd37a] hover:bg-[#f3ad1e]/25 transition-all">
+                        - təsdiqlə
+                    </button>
                 </div>
                 <p class="text-xs sm:text-sm text-white/55 mt-1" x-text="taskDetail?.space?.name || ''"></p>
             </div>
@@ -442,7 +489,7 @@
         </div>
 
         <div class="grid grid-cols-12 h-[calc(88vh-72px)] overflow-hidden">
-            <div class="col-span-12 lg:col-span-7 p-4 sm:p-5 space-y-4 overflow-y-auto">
+            <div class="col-span-12 lg:col-span-7 p-4 sm:p-5 space-y-4 overflow-y-auto tis-modal-scroll">
 
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
@@ -566,19 +613,85 @@
                     <div x-show="showInlineSubtaskForm" class="rounded-2xl bg-[#163067] border border-white/10 p-3 space-y-3">
                         <input type="text" x-model="newInlineSubtask.title" placeholder="Alt tapşırıq adı" class="w-full h-11 rounded-xl px-4 tis-input">
                         <input type="date" x-model="newInlineSubtask.due_date" class="w-full h-11 rounded-xl px-4 tis-input">
+                        <div x-data="employeePicker(spaceId)" x-init="init()">
+                            <input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true" placeholder="Məsul şəxs axtar..." class="w-full h-11 rounded-xl px-4 tis-input">
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <template x-for="emp in selected" :key="`new-sub-assignee-${emp.id}`">
+                                    <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10">
+                                        <img :src="emp.avatar_url" class="w-4 h-4 rounded-full object-cover">
+                                        <span x-text="emp.full_name"></span>
+                                        <button type="button" @click="remove(emp.id)" class="hover:text-red-300">✕</button>
+                                    </span>
+                                </template>
+                            </div>
+                            <div x-show="open && results.length > 0" @click.outside="open=false" class="relative z-10 mt-2 bg-[#1d315f] border border-white/10 rounded-2xl shadow-2xl max-h-40 overflow-y-auto tis-modal-scroll">
+                                <template x-for="emp in results" :key="`new-sub-result-${emp.id}`">
+                                    <button type="button" @click="select(emp)" class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 text-left text-sm">
+                                        <img :src="emp.avatar_url" class="w-7 h-7 rounded-full object-cover">
+                                        <div>
+                                            <p class="font-medium text-white" x-text="emp.full_name"></p>
+                                            <p class="text-xs text-white/45" x-text="emp.position || emp.email || ''"></p>
+                                        </div>
+                                    </button>
+                                </template>
+                            </div>
+                            <span x-effect="newInlineSubtask.assignee_ids = selected.map(e => e.id)"></span>
+                        </div>
                         <div class="flex justify-end gap-2">
                             <button @click="showInlineSubtaskForm = false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button>
                             <button @click="createInlineSubtask()" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Əlavə et</button>
                         </div>
                     </div>
 
-                    <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <div class="space-y-2 max-h-48 overflow-y-auto pr-1 tis-modal-scroll">
                         <template x-for="sub in (taskDetail?.subtasks || [])" :key="`sub-${sub.id}`">
-                            <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
-                                <span class="w-2.5 h-2.5 rounded-full" :class="sub.status === 'completed' ? 'bg-[#22d34f]' : 'bg-white/50'"></span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm truncate" x-text="sub.title"></p>
-                                    <p class="text-[11px] text-white/45" x-text="sub.due_date ? formatDate(sub.due_date) : ''"></p>
+                            <div class="rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 space-y-3" x-init="prepareSubtaskEdit(sub)">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="sub.status === 'completed' ? 'bg-[#22d34f]' : 'bg-white/50'"></span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm truncate" x-text="sub.title"></p>
+                                        <p class="text-[11px] text-white/45" x-text="sub.due_date ? formatDate(sub.due_date) : ''"></p>
+                                    </div>
+                                    <div class="flex -space-x-2" x-show="(sub.assignees || []).length">
+                                        <template x-for="person in (sub.assignees || [])" :key="`sub-assignee-${sub.id}-${person.id}`">
+                                            <img :src="person.avatar_url" :title="person.full_name" class="w-7 h-7 rounded-full object-cover ring-2 ring-[#163067]">
+                                        </template>
+                                    </div>
+                                    <button x-show="canEditSubtask(sub) && sub.status !== 'completed'" @click="completeSubtask(sub)" class="px-3 py-1.5 rounded-lg bg-[#22d34f]/20 text-[#8effa9] border border-[#22d34f]/30 text-xs">Təsdiqlə</button>
+                                    <button x-show="canEditSubtask(sub)" @click="sub.editing = !sub.editing; prepareSubtaskEdit(sub)" class="px-3 py-1.5 rounded-lg bg-white/8 hover:bg-white/12 text-xs">Redaktə et</button>
+                                </div>
+
+                                <div x-show="sub.editing" class="space-y-3 rounded-xl bg-[#10285a] border border-white/10 p-3">
+                                    <input type="text" x-model="sub.edit.title" class="w-full h-10 rounded-xl px-4 tis-input">
+                                    <input type="date" x-model="sub.edit.due_date" class="w-full h-10 rounded-xl px-4 tis-input">
+                                    <div x-data="employeePicker(spaceId)" x-init="init(sub.assignees || [])">
+                                        <input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true" placeholder="Məsul şəxs axtar..." class="w-full h-10 rounded-xl px-4 tis-input">
+                                        <div class="flex flex-wrap gap-2 mt-2">
+                                            <template x-for="emp in selected" :key="`edit-sub-assignee-${sub.id}-${emp.id}`">
+                                                <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10">
+                                                    <img :src="emp.avatar_url" class="w-4 h-4 rounded-full object-cover">
+                                                    <span x-text="emp.full_name"></span>
+                                                    <button type="button" @click="remove(emp.id)" class="hover:text-red-300">✕</button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                        <div x-show="open && results.length > 0" @click.outside="open=false" class="relative z-10 mt-2 bg-[#1d315f] border border-white/10 rounded-2xl shadow-2xl max-h-40 overflow-y-auto tis-modal-scroll">
+                                            <template x-for="emp in results" :key="`edit-sub-result-${sub.id}-${emp.id}`">
+                                                <button type="button" @click="select(emp)" class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 text-left text-sm">
+                                                    <img :src="emp.avatar_url" class="w-7 h-7 rounded-full object-cover">
+                                                    <div>
+                                                        <p class="font-medium text-white" x-text="emp.full_name"></p>
+                                                        <p class="text-xs text-white/45" x-text="emp.position || emp.email || ''"></p>
+                                                    </div>
+                                                </button>
+                                            </template>
+                                        </div>
+                                        <span x-effect="if (sub.edit) sub.edit.assignee_ids = selected.map(e => e.id)"></span>
+                                    </div>
+                                    <div class="flex justify-end gap-2">
+                                        <button @click="sub.editing = false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button>
+                                        <button @click="saveSubtask(sub)" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Saxla</button>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -620,19 +733,20 @@
         </div>
     </div>
 
-    <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+    <div class="space-y-2 max-h-48 overflow-y-auto pr-1 tis-modal-scroll">
         <template x-for="item in (taskDetail?.checklists || [])" :key="`check-${item.id}`">
             <label class="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-3 cursor-pointer">
                 <input
                     type="checkbox"
                     class="mt-1 rounded border-white/20 bg-transparent"
-                    :checked="!!item.is_completed"
+                    :checked="!!(item.is_done || item.is_completed)"
+                    :disabled="!canToggleChecklistItem(taskDetail)"
                     @change="toggleChecklistItem(item)"
                 >
                 <div class="flex-1 min-w-0">
                     <p
                         class="text-sm"
-                        :class="item.is_completed ? 'line-through text-white/45' : 'text-white'"
+                        :class="(item.is_done || item.is_completed) ? 'line-through text-white/45' : 'text-white'"
                         x-text="item.title"
                     ></p>
                 </div>
@@ -662,7 +776,7 @@
                         </label>
                     </div>
 
-                    <div class="space-y-2 max-h-44 overflow-y-auto pr-1">
+                    <div class="space-y-2 max-h-44 overflow-y-auto pr-1 tis-modal-scroll">
                         <template x-for="att in (taskDetail?.attachments || [])" :key="`att-${att.id}`">
                             <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
                                 <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-[10px] font-semibold" x-text="attachmentExt(att.original_name)"></div>
@@ -676,16 +790,38 @@
                         <div x-show="!(taskDetail?.attachments || []).length" class="text-sm text-white/55">Fayl yoxdur</div>
                     </div>
                 </div>
+
+                <div x-show="canShowApprovePrompt(taskDetail)"
+                     x-ref="approvalPanel"
+                     class="rounded-2xl border border-[#f3ad1e]/35 bg-[#f3ad1e]/10 p-4 space-y-3">
+                    <div>
+                        <h3 class="text-base font-semibold text-[#ffd37a]">Təsdiq gözləyir</h3>
+                        <p class="text-sm text-white/65 mt-1">Bu tapşırığı tamamlandı kimi təsdiqləmək yalnız taskı yaradan şəxsə açıqdır.</p>
+                    </div>
+                    <button @click="approveTask()"
+                            :disabled="approvingTask"
+                            class="px-4 py-2.5 rounded-xl bg-[#f3ad1e] hover:bg-[#e9a114] text-[#182d65] text-sm font-semibold disabled:opacity-60">
+                        <span x-text="approvingTask ? 'Təsdiqlənir...' : 'Təsdiqlə'"></span>
+                    </button>
+                </div>
+
+                <div x-show="canCancelTask(taskDetail)" class="pt-2 flex justify-end">
+                    <button @click="cancelTask()"
+                            :disabled="cancelingTask"
+                            class="px-5 py-2.5 rounded-xl bg-[#d9364f] hover:bg-[#c92d45] text-white text-sm font-semibold disabled:opacity-60">
+                        <span x-text="cancelingTask ? 'Ləğv edilir...' : 'Ləğv et'"></span>
+                    </button>
+                </div>
             </div>
 
-            <div class="col-span-12 lg:col-span-5 p-4 sm:p-5 border-l border-white/10 bg-[#163067]/80 overflow-y-auto">
+            <div class="col-span-12 lg:col-span-5 p-4 sm:p-5 border-l border-white/10 bg-[#163067]/80 overflow-y-auto tis-modal-scroll">
                 <div class="rounded-2xl bg-[#132857] border border-white/10 p-4 space-y-4 h-full flex flex-col">
                     <div class="flex items-center justify-between gap-4">
                         <h3 class="text-base font-semibold">Şərhlər</h3>
                         <button @click="loadTaskComments()" class="text-[11px] text-white/45 hover:text-white">Yenilə</button>
                     </div>
 
-                    <div class="space-y-3 overflow-y-auto flex-1 pr-1">
+                    <div class="space-y-3 overflow-y-auto flex-1 pr-1 tis-modal-scroll" x-ref="commentsList">
                         <template x-if="taskCommentsLoading">
                             <div class="text-sm text-white/45">Şərhlər yüklənir...</div>
                         </template>
@@ -746,6 +882,10 @@ function spaceHub(spaceId) {
         spaceGrouped: {},
         boardFilters: { days: '7', overdue: false },
         draggedTask: null,
+        dragOverStatus: null,
+        statusUpdating: false,
+        approvingTask: false,
+        cancelingTask: false,
 
         taskModalOpen: false,
         taskDetail: null,
@@ -760,15 +900,15 @@ function spaceHub(spaceId) {
         editingTaskDates: false,
         taskDateForm: { start_date:'', due_date:'' },
         showInlineSubtaskForm: false,
-        newInlineSubtask: { title:'', due_date:'' },
+        newInlineSubtask: { title:'', due_date:'', assignee_ids:[] },
         showChecklistForm: false,
 newChecklistItem: { title: '' },
 
         statusSections: [
+            { key:'todo',                label:'Görüləcək',         headerClass:'bg-slate-600' },
             { key:'in_progress',         label:'İcra olunur',       headerClass:'bg-blue-600' },
             { key:'waiting_for_approve', label:'Təsdiq gözləyir',   headerClass:'bg-purple-600' },
             { key:'completed',           label:'Tamamlandı',        headerClass:'bg-emerald-600' },
-            { key:'todo',                label:'Görüləcək',         headerClass:'bg-slate-600' },
             { key:'canceled',            label:'Ləğv olundu',       headerClass:'bg-rose-600' },
         ],
 
@@ -844,6 +984,134 @@ newChecklistItem: { title: '' },
 
         onDragTaskStart(task) {
             this.draggedTask = task;
+        },
+
+        onDragStatusTaskStart(task, event) {
+            this.draggedTask = task;
+            this.dragOverStatus = null;
+            if (event?.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', String(task.id));
+            }
+        },
+
+        onDragTaskEnd() {
+            this.dragOverStatus = null;
+        },
+
+        canApproveTask(task) {
+            if (!task) return false;
+            return !!(task.can?.approve || task.creator?.id === AUTH_USER?.id);
+        },
+
+        canShowApprovePrompt(task) {
+            return !!task && task.status === 'waiting_for_approve' && this.canApproveTask(task);
+        },
+
+        canCancelTask(task) {
+            return !!task
+                && task.status !== 'completed'
+                && task.status !== 'canceled'
+                && task.creator?.id === AUTH_USER?.id;
+        },
+
+        canToggleChecklistItem(task) {
+            return !!task && !!(task.can?.toggle_checklist || task.creator?.id === AUTH_USER?.id || (task.assignees || []).some(person => person.id === AUTH_USER?.id));
+        },
+
+        scrollToApproval() {
+            this.$nextTick(() => this.$refs.approvalPanel?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+        },
+
+        async approveTask() {
+            if (!this.taskDetail?.id || !this.canShowApprovePrompt(this.taskDetail)) return;
+            this.approvingTask = true;
+            try {
+                await api('PATCH', `/tasks/${this.taskDetail.id}/approve`);
+                this.taskDetail = await api('GET', `/tasks/${this.taskDetail.id}`);
+                await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped(), this.loadBoards()]);
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq təsdiqləndi', type:'success' } }));
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            } finally {
+                this.approvingTask = false;
+            }
+        },
+
+        async cancelTask() {
+            if (!this.taskDetail?.id || !this.canCancelTask(this.taskDetail)) return;
+            this.cancelingTask = true;
+            try {
+                await api('PATCH', `/tasks/${this.taskDetail.id}/order`, { status: 'canceled' });
+                this.taskDetail = await api('GET', `/tasks/${this.taskDetail.id}`);
+                await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped(), this.loadBoards()]);
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq ləğv edildi', type:'success' } }));
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            } finally {
+                this.cancelingTask = false;
+            }
+        },
+
+        allowedNextStatuses(task) {
+            if (!task) return [];
+            const flow = {
+                todo: ['in_progress', 'canceled'],
+                in_progress: ['waiting_for_approve', 'canceled'],
+                waiting_for_approve: ['completed', 'in_progress', 'canceled'],
+                completed: [],
+                canceled: ['todo'],
+            };
+            return flow[task.status] || [];
+        },
+
+        canDropOnStatus(status) {
+            if (!this.draggedTask || this.statusUpdating) return false;
+            if (this.draggedTask.status === status) return false;
+            if (!this.allowedNextStatuses(this.draggedTask).includes(status)) return false;
+            if (status === 'completed') return this.canApproveTask(this.draggedTask);
+            if (status === 'canceled') return this.canCancelTask(this.draggedTask);
+            return true;
+        },
+
+        async onDropToStatus(status) {
+            const task = this.draggedTask;
+            this.dragOverStatus = null;
+
+            if (!task?.id) return;
+
+            if (!this.canDropOnStatus(status)) {
+                window.dispatchEvent(new CustomEvent('toast', {
+                    detail: {
+                        message: status === 'completed'
+                            ? 'Tapşırığı yalnız yaradan şəxs tamamlandı kimi təsdiqləyə bilər.'
+                            : status === 'canceled'
+                            ? 'Tapşırığı yalnız yaradan şəxs ləğv edə bilər.'
+                            : 'Bu status keçidi mümkün deyil.',
+                        type: 'error'
+                    }
+                }));
+                this.draggedTask = null;
+                return;
+            }
+
+            this.statusUpdating = true;
+            try {
+                if (status === 'completed') {
+                    await api('PATCH', `/tasks/${task.id}/approve`);
+                    window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq təsdiqləndi', type:'success' } }));
+                } else {
+                    await api('PATCH', `/tasks/${task.id}/order`, { status });
+                    window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Status yeniləndi', type:'success' } }));
+                }
+
+                await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped(), this.loadBoards()]);
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            } finally {
+                this.statusUpdating = false;
+                this.draggedTask = null;
+            }
         },
 
         async onDropToBoard(boardId) {
@@ -962,11 +1230,18 @@ boardAssignees(board) {
 taskProgress(task) {
     if (!task) return 0;
 
+    if (task.progress !== undefined && task.progress !== null && task.progress !== '') {
+        const value = parseInt(task.progress, 10);
+        return Number.isNaN(value) ? 0 : Math.max(0, Math.min(100, value));
+    }
+
     const checklist = Array.isArray(task.checklists) ? task.checklists : [];
     const subtasks  = Array.isArray(task.subtasks) ? task.subtasks : [];
 
     if (task.checklist_progress !== undefined && task.checklist_progress !== null && task.checklist_progress !== '') {
-        const value = parseInt(task.checklist_progress, 10);
+        const value = typeof task.checklist_progress === 'object'
+            ? parseInt(task.checklist_progress.percentage ?? 0, 10)
+            : parseInt(task.checklist_progress, 10);
         return Number.isNaN(value) ? 0 : value;
     }
 
@@ -978,11 +1253,6 @@ taskProgress(task) {
             subtasks.filter(i => i.status === 'completed').length;
 
         return Math.round((done / total) * 100);
-    }
-
-    if (task.progress !== undefined && task.progress !== null && task.progress !== '') {
-        const value = parseInt(task.progress, 10);
-        return Number.isNaN(value) ? 0 : value;
     }
 
     if (task.status === 'completed') return 100;
@@ -1010,6 +1280,9 @@ taskProgress(task) {
             try {
                 const data = await api('GET', `/tasks/${this.taskDetail.id}/comments`);
                 this.taskComments = Array.isArray(data) ? data : (data?.data || []);
+                this.$nextTick(() => {
+                    if (this.$refs.commentsList) this.$refs.commentsList.scrollTop = this.$refs.commentsList.scrollHeight;
+                });
             } catch(e) {
                 this.taskComments = [];
             } finally {
@@ -1079,15 +1352,65 @@ taskProgress(task) {
         async createInlineSubtask() {
             if (!this.taskDetail?.id || !this.newInlineSubtask.title?.trim()) return;
             try {
-                const sub = await api('POST', `/tasks/${this.taskDetail.id}/subtasks`, this.newInlineSubtask);
-                if (!Array.isArray(this.taskDetail.subtasks)) this.taskDetail.subtasks = [];
-                this.taskDetail.subtasks.push(sub);
-                this.newInlineSubtask = { title:'', due_date:'' };
+                await api('POST', `/tasks/${this.taskDetail.id}/subtasks`, this.newInlineSubtask);
+                this.newInlineSubtask = { title:'', due_date:'', assignee_ids:[] };
                 this.showInlineSubtaskForm = false;
+                await this.refreshTaskDetail();
                 await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped()]);
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
             }
+        },
+
+        canEditSubtask(subtask) {
+            if (!subtask) return false;
+            return !!(subtask.can?.update || subtask.creator?.id === AUTH_USER?.id || (subtask.assignees || []).some(person => person.id === AUTH_USER?.id));
+        },
+
+        prepareSubtaskEdit(subtask) {
+            if (!subtask.edit) {
+                subtask.edit = {
+                    title: subtask.title || '',
+                    due_date: subtask.due_date || '',
+                    assignee_ids: (subtask.assignees || []).map(person => person.id),
+                };
+            }
+        },
+
+        async saveSubtask(subtask) {
+            if (!subtask?.id || !subtask.edit?.title?.trim()) return;
+            try {
+                await api('PUT', `/tasks/${subtask.id}`, {
+                    title: subtask.edit.title,
+                    due_date: subtask.edit.due_date || null,
+                });
+                await api('PATCH', `/tasks/${subtask.id}/assignees`, {
+                    assignee_ids: subtask.edit.assignee_ids || [],
+                });
+                subtask.editing = false;
+                await this.refreshTaskDetail();
+                await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped()]);
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Alt tapşırıq yeniləndi', type:'success' } }));
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            }
+        },
+
+        async completeSubtask(subtask) {
+            if (!subtask?.id || !this.canEditSubtask(subtask)) return;
+            try {
+                await api('PATCH', `/tasks/${subtask.id}/order`, { status: 'completed' });
+                await this.refreshTaskDetail();
+                await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped(), this.loadBoards()]);
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Alt tapşırıq təsdiqləndi', type:'success' } }));
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            }
+        },
+
+        async refreshTaskDetail() {
+            if (!this.taskDetail?.id) return;
+            this.taskDetail = await api('GET', `/tasks/${this.taskDetail.id}`);
         },
 
 async createChecklistItem() {
@@ -1112,12 +1435,18 @@ async createChecklistItem() {
 
 async toggleChecklistItem(item) {
     if (!item?.id) return;
+    if (!this.canToggleChecklistItem(this.taskDetail)) {
+        window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Bu bəndi yalnız taskı yaradan və ya məsul şəxs işarələyə bilər.', type: 'error' }
+        }));
+        return;
+    }
 
     try {
         const updated = await api('PATCH', `/checklists/${item.id}/toggle`);
 
-        item.is_done = updated?.is_done ?? updated?.is_completed ?? !item.is_done;
-        item.is_completed = updated?.is_completed ?? updated?.is_done ?? item.is_done;
+        item.is_done = !!(updated?.is_done ?? updated?.is_completed ?? !item.is_done);
+        item.is_completed = item.is_done;
     } catch (e) {
         window.dispatchEvent(new CustomEvent('toast', {
             detail: { message: e.message || 'Xəta', type: 'error' }
@@ -1172,8 +1501,11 @@ async updateChecklistItem(item) {
             if (!this.quickComment.trim() || !this.taskDetail?.id) return;
             try {
                 const comment = await api('POST', `/tasks/${this.taskDetail.id}/comments`, { body: this.quickComment });
-                this.taskComments.unshift(comment);
+                this.taskComments.push(comment);
                 this.quickComment = '';
+                this.$nextTick(() => {
+                    if (this.$refs.commentsList) this.$refs.commentsList.scrollTop = this.$refs.commentsList.scrollHeight;
+                });
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
             }
@@ -1196,7 +1528,11 @@ async updateChecklistItem(item) {
         priorityLabel(p) { return { low:'Aşağı', medium:'Normal', high:'High', urgent:'Təcili' }[p] || (p || ''); },
         formatDate(dt) {
             if (!dt) return '';
-            return new Date(dt).toLocaleDateString('az-AZ', { day:'2-digit', month:'2-digit', year:'2-digit' });
+                const date = new Date(dt);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            return `${day}/${month}/${year}`;
         },
     }
 }

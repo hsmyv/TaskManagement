@@ -29,9 +29,11 @@ class TaskResource extends JsonResource
             'deadline_locked'  => $this->deadline_locked,
             'is_overdue'       => $this->isOverdue(),
             'is_subtask'       => $this->isSubtask(),
+            'progress'         => $this->progress_percentage,
 
             // İlişkilər
             'space'         => new SpaceResource($this->whenLoaded('space')),
+            'board'         => new BoardResource($this->whenLoaded('board')),
             'creator'       => new EmployeeResource($this->whenLoaded('creator')),
             'assigner'      => new EmployeeResource($this->whenLoaded('assigner')),
             'assignees'     => EmployeeResource::collection($this->whenLoaded('assignees')),
@@ -54,6 +56,7 @@ class TaskResource extends JsonResource
                 'assign'          => $request->user()?->can('assign', $this->resource),
                 'approve'         => $request->user()?->can('approve', $this->resource),
                 'update_deadline' => $request->user()?->can('updateDeadline', $this->resource),
+                'toggle_checklist'=> $request->user()?->can('toggleChecklist', $this->resource),
             ],
 
             'created_at' => $this->created_at,

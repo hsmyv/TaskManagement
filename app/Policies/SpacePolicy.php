@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Employee;
 use App\Models\Space;
+use App\Models\Task;
 
 class SpacePolicy
 {
@@ -53,7 +54,17 @@ class SpacePolicy
      */
     public function view(Employee $employee, Space $space): bool
     {
-        return $employee->hasGlobalAccess()
-            || $employee->isMemberOf($space);
+        if ($employee->hasGlobalAccess() || $employee->isMemberOf($space)) {
+            return true;
+        }
+
+        return Task::query()
+            ->where('space_id', $space->id)
+            ->whereNotNull('parent_task_id')
+            ->where(function ($query) use ($employee) {
+                $query->where('created_by', $employee->id)
+                    ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id));
+            })
+            ->exists();
     }
 }

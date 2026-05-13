@@ -497,7 +497,12 @@ function boardHub(spaceId, boardId) {
 
         progressPercent(t) {
             if (!t) return 0;
-            if (t.status === 'completed' || t.status === 'waiting_for_approve') return 100;
+            if (t.progress !== undefined && t.progress !== null && t.progress !== '') {
+                const value = parseInt(t.progress, 10);
+                return Number.isNaN(value) ? 0 : Math.max(0, Math.min(100, value));
+            }
+            if (t.status === 'completed') return 100;
+            if (t.status === 'waiting_for_approve') return 85;
             if (typeof t.checklist_progress === 'number') return Math.max(0, Math.min(100, Math.round(t.checklist_progress)));
 
             const subtasks = t.subtasks || [];

@@ -106,7 +106,7 @@ class TaskController extends Controller
 
         $task->load([
             'creator', 'assigner', 'assignees', 'space',
-            'subtasks.assignees', 'checklists.completedBy',
+            'subtasks.creator', 'subtasks.assignees', 'checklists.completedBy',
             'attachments.uploader', 'comments.author', 'comments.replies.author',
             'statusHistory.changedBy',
         ])->loadCount(['subtasks', 'attachments', 'comments']);

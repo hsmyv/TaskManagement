@@ -146,7 +146,11 @@ class Task extends Model
 
         return $query->where(function ($q) use ($employee) {
             $q->where('created_by', $employee->id)
-              ->orWhereHas('assignees', fn($aq) => $aq->where('employees.id', $employee->id));
+              ->orWhereHas('assignees', fn($aq) => $aq->where('employees.id', $employee->id))
+              ->orWhereHas('subtasks', function ($sq) use ($employee) {
+                  $sq->where('created_by', $employee->id)
+                     ->orWhereHas('assignees', fn($aq) => $aq->where('employees.id', $employee->id));
+              });
         });
     }
 
@@ -192,5 +196,38 @@ class Task extends Model
             'done'       => $done,
             'percentage' => $total > 0 ? round(($done / $total) * 100) : 0,
         ];
+    }
+
+    public function getProgressPercentageAttribute(): int
+    {
+        if ($this->status === self::STATUS_COMPLETED) {
+            return 100;
+        }
+
+        if ($this->status === self::STATUS_CANCELED) {
+            return 0;
+        }
+
+        $checklistTotal = $this->checklists()->count();
+        $checklistDone = $this->checklists()->where('is_done', true)->count();
+        $subtaskTotal = $this->subtasks()->count();
+        $subtaskDone = $this->subtasks()->where('status', self::STATUS_COMPLETED)->count();
+        $total = $checklistTotal + $subtaskTotal;
+
+        if ($total > 0) {
+            $percentage = (int) round((($checklistDone + $subtaskDone) / $total) * 100);
+
+            return match ($this->status) {
+                self::STATUS_IN_PROGRESS => max($percentage, 30),
+                self::STATUS_WAITING_FOR_APPROVE => max($percentage, 85),
+                default => $percentage,
+            };
+        }
+
+        return match ($this->status) {
+            self::STATUS_IN_PROGRESS => 50,
+            self::STATUS_WAITING_FOR_APPROVE => 85,
+            default => 0,
+        };
     }
 }

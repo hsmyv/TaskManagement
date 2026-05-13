@@ -109,12 +109,24 @@ class TaskService
             $currentStatus  = TaskStatus::from($task->status);
             $resolvedStatus = TaskStatus::resolveNextStatus($newStatus, $task->require_approval);
 
-            // waiting_for_approve → completed yalnız approve button ilə mümkündür
+            if ($resolvedStatus === TaskStatus::Completed && !$task->isSubtask()) {
+                abort(422, 'Tapşırıq yalnız yaradan şəxsin təsdiqi ilə tamamlandı ola bilər.');
+            }
+
+            if ($resolvedStatus === TaskStatus::Canceled
+                && $task->created_by !== $changer->id) {
+                abort(403, 'Tapşırığı yalnız yaradan şəxs ləğv edə bilər.');
+            }
+
+            // waiting_for_approve → completed yalnız approve endpoint-i ilə mümkündür
             if ($currentStatus === TaskStatus::WaitingForApprove && $resolvedStatus === TaskStatus::WaitingForApprove) {
                 abort(422, 'Bu tapşırıq təsdiq gözləyir');
             }
 
-            if (!$currentStatus->canTransitionTo($resolvedStatus)) {
+            $isDirectSubtaskCompletion = $task->isSubtask()
+                && $resolvedStatus === TaskStatus::Completed;
+
+            if (!$isDirectSubtaskCompletion && !$currentStatus->canTransitionTo($resolvedStatus)) {
                 abort(422, "'{$currentStatus->label()}' → '{$resolvedStatus->label()}' keçidi mümkün deyil.");
             }
 

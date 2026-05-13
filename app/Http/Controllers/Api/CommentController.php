@@ -32,7 +32,7 @@ class CommentController extends Controller
     {
         $comments = $task->comments()
             ->with(['author', 'replies.author'])
-            ->latest()
+            ->oldest()
             ->get();
 
         return response()->json(CommentResource::collection($comments));

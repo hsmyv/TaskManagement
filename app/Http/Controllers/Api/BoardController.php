@@ -89,9 +89,10 @@ public function index(Space $space): JsonResponse
 
         $board->load([
             'space',
-            'tasks' => function ($q) {
+            'tasks' => function ($q) use ($request) {
                 $q->whereNull('parent_task_id')
                     ->with(['assignees'])
+                    ->forEmployee($request->user())
                     ->orderBy('board_position');
             },
         ]);
@@ -101,4 +102,3 @@ public function index(Space $space): JsonResponse
         ]);
     }
 }
-
