@@ -74,6 +74,91 @@ class TaskController extends Controller
         return response()->json(TaskResource::collection($tasks));
     }
 
+    public function export(Request $request, Space $space): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $this->authorize('view', $space);
+
+        $query = Task::query()
+            ->where('space_id', $space->id)
+            ->whereNull('parent_task_id')
+            ->with(['board', 'assignees', 'creator', 'assigner', 'subtasks', 'checklists'])
+            ->withCount(['subtasks', 'attachments', 'comments'])
+            ->forEmployee($request->user());
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+        if ($request->filled('assignee_id')) {
+            $query->whereHas('assignees', fn($q) => $q->where('employees.id', $request->assignee_id));
+        }
+        if ($request->filled('created_by')) {
+            $query->where('created_by', $request->created_by);
+        }
+        if ($request->filled('board_id')) {
+            $query->where('board_id', $request->board_id);
+        }
+        if ($request->filled('due_date_from')) {
+            $query->where('due_date', '>=', $request->due_date_from);
+        }
+        if ($request->filled('due_date_to')) {
+            $query->where('due_date', '<=', $request->due_date_to);
+        }
+        if ($request->boolean('due_soon')) {
+            $query->dueSoon($request->integer('due_days', 7));
+        }
+        if ($request->boolean('overdue')) {
+            $query->overdue();
+        }
+        if ($request->filled('q')) {
+            $query->where('title', 'like', "%{$request->q}%");
+        }
+
+        $tasks = $query->orderBy('board_position')->latest()->get();
+        $filename = 'tasks-' . now()->format('Y-m-d-His') . '.xls';
+
+        return response()->streamDownload(function () use ($tasks) {
+            echo '<html><head><meta charset="UTF-8"></head><body><table border="1">';
+            echo '<tr>';
+            foreach (['Ad', 'Layihə', 'Status', 'Prioritet', 'Məsul şəxslər', 'Təyin edən', 'Yaradan', 'Başlama tarixi', 'Son tarix', 'İrəliləyiş', 'Alt tapşırıqlar', 'Yoxlama siyahısı', 'Gecikib'] as $heading) {
+                echo '<th>' . e($heading) . '</th>';
+            }
+            echo '</tr>';
+
+            foreach ($tasks as $task) {
+                $checklist = $task->checklist_progress;
+                $assignees = $task->assignees->pluck('full_name')->implode(', ');
+                $row = [
+                    $task->title,
+                    $task->board?->name,
+                    \App\Models\StatusHistory::statusLabel($task->status),
+                    $task->priority,
+                    $assignees,
+                    $task->assigner?->full_name,
+                    $task->creator?->full_name,
+                    $task->start_date?->format('d.m.Y'),
+                    $task->due_date?->format('d.m.Y'),
+                    $task->progress_percentage . '%',
+                    $task->subtasks->where('status', Task::STATUS_COMPLETED)->count() . '/' . $task->subtasks->count(),
+                    ($checklist['done'] ?? 0) . '/' . ($checklist['total'] ?? 0),
+                    $task->isOverdue() ? 'Bəli' : 'Xeyr',
+                ];
+
+                echo '<tr>';
+                foreach ($row as $cell) {
+                    echo '<td>' . e((string) $cell) . '</td>';
+                }
+                echo '</tr>';
+            }
+
+            echo '</table></body></html>';
+        }, $filename, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+        ]);
+    }
+
     public function store(Request $request, Space $space): JsonResponse
     {
         $this->authorize('create', [Task::class, $space]);

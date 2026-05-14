@@ -47,6 +47,7 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
     Route::patch('/tasks/{task}/move',              [BoardTaskController::class, 'move']);
 
     // Tasks
+    Route::get('/spaces/{space}/tasks/export',      [TaskController::class, 'export']);
     Route::get('/spaces/{space}/tasks',             [TaskController::class, 'index']);
     Route::post('/spaces/{space}/tasks',            [TaskController::class, 'store']);
     Route::get('/tasks/{task}',                     [TaskController::class, 'show']);

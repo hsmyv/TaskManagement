@@ -29,6 +29,7 @@ class BoardTaskController extends Controller
             'due_date' => ['nullable', 'date'],
             'assignee_ids' => ['nullable', 'array'],
             'assignee_ids.*' => ['integer', 'exists:employees,id'],
+            'assigned_by_id' => ['nullable', 'integer', 'exists:employees,id'],
         ]);
 
         $pos = (int) (Task::where('board_id', $board->id)->max('board_position') ?? 0) + 1;
@@ -44,11 +45,18 @@ class BoardTaskController extends Controller
             'start_date' => $validated['start_date'] ?? null,
             'due_date' => $validated['due_date'] ?? null,
             'created_by' => $request->user()->id,
-            'assigned_by' => $request->user()->id,
+            'assigned_by' => $validated['assigned_by_id'] ?? $request->user()->id,
         ]);
 
         if (!empty($validated['assignee_ids'])) {
-            $task->assignees()->sync($validated['assignee_ids']);
+            $syncData = [];
+            foreach ($validated['assignee_ids'] as $employeeId) {
+                $syncData[$employeeId] = [
+                    'assigned_by' => $validated['assigned_by_id'] ?? $request->user()->id,
+                    'assigned_at' => now(),
+                ];
+            }
+            $task->assignees()->sync($syncData);
         }
 
         $logger->log($request->user(), 'create', 'task', $task->id, $space, $board, [
@@ -111,4 +119,3 @@ class BoardTaskController extends Controller
         ]);
     }
 }
-

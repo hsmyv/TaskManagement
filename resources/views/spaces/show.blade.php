@@ -134,7 +134,7 @@
                         </div>
                         <div class="flex flex-wrap items-center gap-3 justify-end">
                             <button x-show="canCreateBoard" @click="openCreateBoard()" class="h-11 px-5 rounded-xl bg-[#20356d] text-white text-sm font-medium shadow-lg hover:bg-[#182b5d] transition-all">Layihə əlavə edin</button>
-                            <button class="h-11 px-5 rounded-xl bg-[#6d44c5] text-white text-sm font-medium shadow-lg hover:bg-[#613db1] transition-all flex items-center gap-2">
+                            <button @click="exportTasks()" class="h-11 px-5 rounded-xl bg-[#6d44c5] text-white text-sm font-medium shadow-lg hover:bg-[#613db1] transition-all flex items-center gap-2">
                                 Export
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M4 16.8V19a1 1 0 001 1h14a1 1 0 001-1v-2.2"/></svg>
                             </button>
@@ -959,6 +959,12 @@ newChecklistItem: { title: '' },
             } catch(e) {
                 this.spaceGrouped = {};
             }
+        },
+
+        exportTasks() {
+            const params = new URLSearchParams();
+            if (this.boardFilters.overdue) params.set('overdue', 1);
+            window.location.href = `/api/spaces/${this.spaceId}/tasks/export?${params.toString()}`;
         },
 
         openCreateBoard() {
