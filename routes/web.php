@@ -24,7 +24,7 @@ Route::middleware(['auth', 'active.employee'])->group(function () {
 
     // Spaces
     // Route::get('/spaces',              [SpaceWebController::class, 'index'])->name('spaces.index');
-    Route::get('/spaces/{space}',      [SpaceWebController::class, 'show'])->name('spaces.show');
+    Route::get('/spaces/{space}',      [SpaceWebController::class, 'show'])->name('spaces.detail');
     Route::get('/spaces/{space}/boards/{board}', [BoardWebController::class, 'show'])->name('boards.show');
 
     // Tasks

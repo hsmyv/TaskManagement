@@ -67,7 +67,7 @@
     <div class="grid grid-cols-12 gap-0">
         <aside class="col-span-12 lg:col-span-2 xl:col-span-2 bg-[#345089] min-h-[calc(100vh-74px)] px-5 py-7 text-white">
             <div class="max-w-[190px] space-y-8">
-                <a href="{{ route('spaces.show', $space) }}"
+                <a href="{{ route('spaces.detail', $space) }}"
                    class="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/25 bg-white/5 hover:bg-white/10 transition-colors"
                    title="Space-ə qayıt">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

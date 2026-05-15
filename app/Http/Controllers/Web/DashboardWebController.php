@@ -26,7 +26,7 @@ class DashboardWebController extends Controller
                 ->first();
 
             if ($targetSpace) {
-                return redirect()->route('spaces.show', $targetSpace);
+                return redirect()->route('spaces.detail', $targetSpace);
             }
         }
 
