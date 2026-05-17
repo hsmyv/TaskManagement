@@ -160,12 +160,12 @@
                             <template x-for="n in notifications" :key="n.id">
                                 <div @click="markRead(n)"
                                      class="flex gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 transition-colors"
-                                     :class="!n.is_read ? 'bg-blue-50/40' : ''">
+                                     :class="!n.is_read ? 'bg-blue-100/80' : 'bg-white'">
                                     <div class="flex-col shrink-0 items-center justify-start pt-1">
                                         <span class="text-base" x-text="notificationIcon(n)"></span>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm text-slate-700 leading-snug" x-text="notificationText(n)"></p>
+                                        <p class="text-sm text-slate-800 leading-snug font-semibold" x-text="notificationText(n)"></p>
                                         <p class="text-xs text-blue-500 mt-0.5" x-show="n.data?.space_name" x-text="'📁 ' + (n.data?.space_name ?? '')"></p>
                                         <p class="text-xs text-slate-400 mt-0.5" x-text="formatDate(n.created_at)"></p>
                                     </div>
@@ -218,12 +218,12 @@
                             <template x-for="n in notifications" :key="n.id">
                                 <div @click="markRead(n)"
                                      class="flex gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 transition-colors"
-                                     :class="!n.is_read ? 'bg-blue-50/40' : ''">
+                                     :class="!n.is_read ? 'bg-blue-100/80' : 'bg-white'">
                                     <div class="flex-col shrink-0 items-center justify-start pt-1">
                                         <span class="text-base" x-text="notificationIcon(n)"></span>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm text-slate-700 leading-snug" x-text="notificationText(n)"></p>
+                                        <p class="text-sm text-slate-800 leading-snug font-semibold" x-text="notificationText(n)"></p>
                                         <p class="text-xs text-blue-500 mt-0.5" x-show="n.data?.space_name" x-text="'📁 ' + (n.data?.space_name ?? '')"></p>
                                         <p class="text-xs text-slate-400 mt-0.5" x-text="formatDate(n.created_at)"></p>
                                     </div>
@@ -234,7 +234,7 @@
                     </div>
                 </div>
 
-                <div x-data="{ open: false }" class="relative">
+                <div x-data="{ open: false, saving:false, async saveProfile(){ this.saving = true; try { const res = await fetch('/api/auth/profile', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '', 'Accept':'application/json' }, body: new FormData(this.$refs.profileForm), credentials:'same-origin' }); if(!res.ok){ const err = await res.json().catch(() => ({})); throw new Error(err.message || 'Profil yenilənmədi'); } window.location.reload(); } catch(e){ window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } })); } finally { this.saving = false; } } }" class="relative">
                     <button @click="open = !open"
                             class="flex items-center gap-3 rounded-full pl-4 pr-1 py-1 text-white hover:bg-white/10 transition-colors">
                         <span class="hidden sm:block text-base font-medium">{{ auth()->user()->full_name }}</span>
@@ -242,11 +242,19 @@
                     </button>
 
                     <div x-show="open" x-transition @click.outside="open=false"
-                         class="absolute right-0 top-14 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50">
+                         class="absolute right-0 top-14 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50">
                         <div class="px-4 py-3 border-b border-slate-100">
                             <p class="text-sm font-semibold text-slate-800">{{ auth()->user()->full_name }}</p>
                             <p class="text-xs text-slate-500 mt-1">{{ auth()->user()->position }}</p>
                         </div>
+                        <form x-ref="profileForm" @submit.prevent="saveProfile()" class="px-4 py-3 space-y-3 border-b border-slate-100">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input name="name" value="{{ auth()->user()->name }}" class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Ad">
+                                <input name="surname" value="{{ auth()->user()->surname }}" class="h-10 rounded-xl border border-slate-200 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Soyad">
+                            </div>
+                            <input type="file" name="avatar" accept="image/*" class="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700">
+                            <button type="submit" :disabled="saving" class="w-full h-10 rounded-xl bg-[#1f4f9f] text-white text-sm font-semibold hover:bg-[#1b4386] disabled:opacity-60" x-text="saving ? 'Yenilənir...' : 'Profili yenilə'"></button>
+                        </form>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Çıxış</button>

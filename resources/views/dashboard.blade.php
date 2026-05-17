@@ -42,7 +42,7 @@
                 <select x-model="filters.priority" @change="loadTasks()" class="h-9 rounded-[5px] border border-white/60 bg-[#1d2d62]/70 px-3 text-sm text-white focus:outline-none">
                     <option value="">Bütün prioritetlər</option>
                     <option value="low">Aşağı</option>
-                    <option value="medium">Normal</option>
+                    <option value="medium">Orta</option>
                     <option value="high">Yüksək</option>
                     <option value="urgent">Təcili</option>
                 </select>
@@ -146,7 +146,7 @@
                                         <span class="truncate" x-text="task.assigner?.full_name || task.creator?.full_name || '-'"></span>
                                     </div>
                                     <div x-text="task.due_date ? formatDate(task.due_date) : '-'"></div>
-                                    <div x-text="priorityLabel(task.priority) || 'Normal'"></div>
+                                    <div x-text="priorityLabel(task.priority) || 'Orta'"></div>
                                     <div class="flex items-center gap-3">
                                         <div class="h-2 w-full rounded-full bg-[#17305f] overflow-hidden">
                                             <div class="h-2 rounded-full" :class="taskProgress(task) === 100 ? 'bg-[#00c83a]' : 'bg-[#33b95a]'" :style="`width:${taskProgress(task)}%`"></div>
@@ -159,6 +159,38 @@
                     </div>
                 </section>
             </template>
+        </div>
+
+        <div class="rounded-[10px] bg-[#213b78]/95 border border-white/10 shadow-[0_16px_40px_rgba(5,14,45,0.2)] px-5 py-5">
+            <div class="flex items-center justify-between gap-4 mb-5">
+                <h2 class="text-xl font-semibold">Statistika</h2>
+                <span class="text-sm text-white/55">Departamentlər üzrə ümumi vəziyyət</span>
+            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                <template x-for="space in spaceStats" :key="`stat-${space.id}`">
+                    <div class="rounded-[8px] bg-white/6 border border-white/10 p-4">
+                        <div class="flex items-center justify-between gap-4 mb-3">
+                            <h3 class="font-medium truncate" x-text="space.name"></h3>
+                            <span class="text-xs text-white/55" x-text="`${space.tasks_total || 0} tapşırıq • ${space.boards_count || 0} layihə`"></span>
+                        </div>
+                        <div class="h-3 rounded-full bg-[#142b59] overflow-hidden flex">
+                            <div class="bg-white/30" :style="`width:${statPart(space.todo_count, space.tasks_total)}%`"></div>
+                            <div class="bg-[#f7aa14]" :style="`width:${statPart(space.in_progress_count, space.tasks_total)}%`"></div>
+                            <div class="bg-[#955bf7]" :style="`width:${statPart(space.waiting_count, space.tasks_total)}%`"></div>
+                            <div class="bg-[#0dd33f]" :style="`width:${statPart(space.completed_count, space.tasks_total)}%`"></div>
+                            <div class="bg-[#ef4444]" :style="`width:${statPart(space.canceled_count, space.tasks_total)}%`"></div>
+                        </div>
+                        <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-white/70">
+                            <span>Görüləcək: <b x-text="space.todo_count || 0"></b></span>
+                            <span>İcra olunur: <b x-text="space.in_progress_count || 0"></b></span>
+                            <span>Təsdiq: <b x-text="space.waiting_count || 0"></b></span>
+                            <span>Tamamlandı: <b x-text="space.completed_count || 0"></b></span>
+                            <span>Ləğv: <b x-text="space.canceled_count || 0"></b></span>
+                            <span>Gecikmiş: <b x-text="space.overdue_count || 0"></b></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
         </div>
     </section>
 
@@ -199,7 +231,7 @@
                         <label class="block text-sm font-medium text-white/80 mb-1">Prioritet</label>
                         <select x-model="newTask.priority" class="w-full h-12 rounded-xl px-4 tis-input">
                             <option value="low">Aşağı</option>
-                            <option value="medium">Normal</option>
+                            <option value="medium">Orta</option>
                             <option value="high">Yüksək</option>
                             <option value="urgent">Təcili</option>
                         </select>
@@ -308,7 +340,7 @@
                                 </div>
                                 <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
                                     <p class="text-white/45 mb-1 text-xs">Prioritet</p>
-                                    <p class="text-white font-medium" x-text="priorityLabel(taskDetail?.priority) || 'Normal'"></p>
+                                    <p class="text-white font-medium" x-text="priorityLabel(taskDetail?.priority) || 'Orta'"></p>
                                 </div>
                             </div>
 
@@ -590,6 +622,7 @@ function dashboard() {
     return {
         stats: {},
         spaces: [],
+        spaceStats: [],
         groupedTasks: {},
         spacesLoading: false,
         tasksLoading: false,
@@ -637,6 +670,7 @@ function dashboard() {
                 const data = await api('GET', `/dashboard?${params.toString()}`);
                 this.stats = data.stats || {};
                 this.spaces = data.my_spaces || [];
+                this.spaceStats = data.space_stats || [];
                 this.groupedTasks = data.grouped_tasks || {};
                 this.decorateSpaces();
             } catch(e) {
@@ -653,6 +687,12 @@ function dashboard() {
                 ...space,
                 overdue_count: tasks.filter(t => Number(t.space_id) === Number(space.id) && t.is_overdue).length,
             }));
+        },
+
+        statPart(value, total) {
+            total = Number(total || 0);
+            if (!total) return 0;
+            return Math.max(0, Math.min(100, Math.round((Number(value || 0) / total) * 100)));
         },
 
         visibleStatusSections() {
@@ -948,7 +988,7 @@ function dashboard() {
         },
 
         priorityLabel(priority) {
-            return { low:'Aşağı', medium:'Normal', high:'Yüksək', urgent:'Təcili' }[priority] || priority || '';
+            return { low:'Aşağı', medium:'Orta', high:'Yüksək', urgent:'Təcili' }[priority] || priority || '';
         },
 
         statusDotClass(status) {

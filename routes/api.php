@@ -24,6 +24,7 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
     // Auth
     Route::post('/auth/logout',  [AuthController::class, 'logout']);
     Route::get('/auth/me',       [AuthController::class, 'me']);
+    Route::post('/auth/profile',  [AuthController::class, 'updateProfile']);
 
     // Dashboard
     Route::get('/dashboard',     [DashboardController::class, 'index']);
@@ -38,6 +39,8 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
     Route::get('/spaces/{space}/boards',            [BoardController::class, 'index']);
     Route::post('/spaces/{space}/boards',           [BoardController::class, 'store']);
     Route::get('/boards/{board}',                   [BoardController::class, 'show']);
+    Route::patch('/boards/{board}/archive',         [BoardController::class, 'archive']);
+    Route::patch('/boards/{board}/unarchive',       [BoardController::class, 'unarchive']);
     Route::get('/boards/{board}/activity',          [BoardActivityController::class, 'index']);
     Route::get('/boards/{board}/members',           [BoardMemberController::class, 'index']);
     Route::put('/boards/{board}/members',           [BoardMemberController::class, 'sync']);

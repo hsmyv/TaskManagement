@@ -15,7 +15,7 @@ class TaskController extends Controller
     public function __construct(private readonly TaskService $taskService) {}
 
     /**
-     * Space-ə aid bütün tasklar (Kanban üçün)
+     * Space-É™ aid bÃ¼tÃ¼n tasklar (Kanban Ã¼Ã§Ã¼n)
      */
     public function index(Request $request, Space $space): JsonResponse
     {
@@ -25,10 +25,13 @@ class TaskController extends Controller
             ->where('space_id', $space->id)
             ->whereNull('parent_task_id')
             ->with(['assignees', 'creator', 'assigner'])
-            ->withCount(['subtasks', 'attachments', 'comments'])
-            ->forEmployee($request->user());
+            ->withCount(['subtasks', 'attachments', 'comments']);
 
-        // Filterlər (TIS section 5.2)
+        if (!$request->filled('board_id')) {
+            $query->forEmployee($request->user());
+        }
+
+        // FilterlÉ™r (TIS section 5.2)
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -36,13 +39,23 @@ class TaskController extends Controller
             $query->where('priority', $request->priority);
         }
         if ($request->filled('assignee_id')) {
-            $query->whereHas('assignees', fn($q) => $q->where('employees.id', $request->assignee_id));
+            $assigneeId = $request->integer('assignee_id');
+            $query->where(function ($query) use ($assigneeId) {
+                $query->where('created_by', $assigneeId)
+                    ->orWhere('assigned_by', $assigneeId)
+                    ->orWhereHas('assignees', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('subtasks', fn($q) => $q->where('assigned_by', $assigneeId))
+                    ->orWhereHas('subtasks.assignees', fn($q) => $q->where('employees.id', $assigneeId));
+            });
         }
         if ($request->filled('created_by')) {
             $query->where('created_by', $request->created_by);
         }
         if ($request->filled('board_id')) {
             $query->where('board_id', $request->board_id);
+        }
+        if ($request->boolean('unassigned_board')) {
+            $query->whereNull('board_id');
         }
         if ($request->filled('due_date_from')) {
             $query->where('due_date', '>=', $request->due_date_from);
@@ -65,7 +78,7 @@ class TaskController extends Controller
             ? $query->orderBy('board_position')->get()
             : $query->latest()->get();
 
-        // Kanban üçün statuslara görə qruplaşdır
+        // Kanban Ã¼Ã§Ã¼n statuslara gÃ¶rÉ™ qruplaÅŸdÄ±r
         if ($request->boolean('grouped')) {
             $grouped = $tasks->groupBy('status')->map(fn($g) => TaskResource::collection($g));
             return response()->json($grouped);
@@ -92,13 +105,23 @@ class TaskController extends Controller
             $query->where('priority', $request->priority);
         }
         if ($request->filled('assignee_id')) {
-            $query->whereHas('assignees', fn($q) => $q->where('employees.id', $request->assignee_id));
+            $assigneeId = $request->integer('assignee_id');
+            $query->where(function ($query) use ($assigneeId) {
+                $query->where('created_by', $assigneeId)
+                    ->orWhere('assigned_by', $assigneeId)
+                    ->orWhereHas('assignees', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('subtasks', fn($q) => $q->where('assigned_by', $assigneeId))
+                    ->orWhereHas('subtasks.assignees', fn($q) => $q->where('employees.id', $assigneeId));
+            });
         }
         if ($request->filled('created_by')) {
             $query->where('created_by', $request->created_by);
         }
         if ($request->filled('board_id')) {
             $query->where('board_id', $request->board_id);
+        }
+        if ($request->boolean('unassigned_board')) {
+            $query->whereNull('board_id');
         }
         if ($request->filled('due_date_from')) {
             $query->where('due_date', '>=', $request->due_date_from);
@@ -122,7 +145,7 @@ class TaskController extends Controller
         return response()->streamDownload(function () use ($tasks) {
             echo '<html><head><meta charset="UTF-8"></head><body><table border="1">';
             echo '<tr>';
-            foreach (['Ad', 'Layihə', 'Status', 'Prioritet', 'Məsul şəxslər', 'Təyin edən', 'Yaradan', 'Başlama tarixi', 'Son tarix', 'İrəliləyiş', 'Alt tapşırıqlar', 'Yoxlama siyahısı', 'Gecikib'] as $heading) {
+            foreach (['Tapşırıq', 'Alt tapşırıqlar', 'Layihə', 'Status', 'Prioritet', 'Məsul şəxslər', 'Təyin edən', 'Yaradan', 'Başlama tarixi', 'Son tarix', 'İrəliləyiş', 'Yoxlama siyahısı', 'Gecikib'] as $heading) {
                 echo '<th>' . e($heading) . '</th>';
             }
             echo '</tr>';
@@ -132,16 +155,22 @@ class TaskController extends Controller
                 $assignees = $task->assignees->pluck('full_name')->implode(', ');
                 $row = [
                     $task->title,
+                    $task->subtasks->pluck('title')->implode(', '),
                     $task->board?->name,
                     \App\Models\StatusHistory::statusLabel($task->status),
-                    $task->priority,
+                    match ($task->priority) {
+                        Task::PRIORITY_LOW => 'Aşağı',
+                        Task::PRIORITY_MEDIUM => 'Orta',
+                        Task::PRIORITY_HIGH => 'Yüksək',
+                        Task::PRIORITY_URGENT => 'Təcili',
+                        default => $task->priority,
+                    },
                     $assignees,
                     $task->assigner?->full_name,
                     $task->creator?->full_name,
                     $task->start_date?->format('d.m.Y'),
                     $task->due_date?->format('d.m.Y'),
                     $task->progress_percentage . '%',
-                    $task->subtasks->where('status', Task::STATUS_COMPLETED)->count() . '/' . $task->subtasks->count(),
                     ($checklist['done'] ?? 0) . '/' . ($checklist['total'] ?? 0),
                     $task->isOverdue() ? 'Bəli' : 'Xeyr',
                 ];
@@ -158,7 +187,6 @@ class TaskController extends Controller
             'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
         ]);
     }
-
     public function store(Request $request, Space $space): JsonResponse
     {
         $this->authorize('create', [Task::class, $space]);
@@ -226,12 +254,12 @@ class TaskController extends Controller
     {
         $this->authorize('delete', $task);
         $this->taskService->deleteTask($task, $request->user());
-        return response()->json(['message' => 'Tapşırıq silindi.']);
+        return response()->json(['message' => 'TapÅŸÄ±rÄ±q silindi.']);
     }
-    
+
 
     /**
-     * Status dəyişikliyi
+     * Status dÉ™yiÅŸikliyi
      */
     public function updateStatus(Request $request, Task $task): JsonResponse
     {
@@ -248,14 +276,14 @@ class TaskController extends Controller
     }
 
     /**
-     * Tapşırığı təsdiqlə (Waiting → Completed)
+     * TapÅŸÄ±rÄ±ÄŸÄ± tÉ™sdiqlÉ™ (Waiting â†’ Completed)
      */
     public function approve(Request $request, Task $task): JsonResponse
     {
         $this->authorize('approve', $task);
 
         if ($task->status !== 'waiting_for_approve') {
-            return response()->json(['message' => 'Bu tapşırıq təsdiq gözləmir.'], 422);
+            return response()->json(['message' => 'Bu tapÅŸÄ±rÄ±q tÉ™sdiq gÃ¶zlÉ™mir.'], 422);
         }
 
         $task = $this->taskService->approveTask($task, $request->user());
@@ -264,7 +292,7 @@ class TaskController extends Controller
     }
 
     /**
-     * Assignee-ləri yenilə
+     * Assignee-lÉ™ri yenilÉ™
      */
     public function updateAssignees(Request $request, Task $task): JsonResponse
     {
@@ -281,7 +309,7 @@ class TaskController extends Controller
     }
 
     /**
-     * Drag & Drop: status dəyişikliyi
+     * Drag & Drop: status dÉ™yiÅŸikliyi
      */
     public function updateOrder(Request $request, Task $task): JsonResponse
     {
@@ -297,7 +325,7 @@ class TaskController extends Controller
     }
 
     /**
-     * Alt tapşırıqlar
+     * Alt tapÅŸÄ±rÄ±qlar
      */
     public function subtasks(Request $request, Task $task): JsonResponse
     {
@@ -321,6 +349,7 @@ class TaskController extends Controller
             'estimated_hours' => 'nullable|integer|min:1',
             'assignee_ids'    => 'nullable|array',
             'assignee_ids.*'  => 'exists:employees,id',
+            'assigned_by_id'  => 'nullable|exists:employees,id',
         ]);
 
         $data['parent_task_id'] = $task->id;

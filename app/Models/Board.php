@@ -17,8 +17,18 @@ class Board extends Model
         'space_id',
         'name',
         'description',
+        'deadline',
         'created_by',
+        'archived_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'deadline' => 'date',
+            'archived_at' => 'datetime',
+        ];
+    }
 
     public function space(): BelongsTo
     {

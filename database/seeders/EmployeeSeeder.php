@@ -779,6 +779,19 @@ TXT;
         );
         $admin->assignRole(UserRole::Administrator->value);
 
+        $aiEmployee = Employee::updateOrCreate(
+            ['email' => 'ai@tis.local'],
+            [
+                'name' => 'AI',
+                'surname' => '',
+                'password' => Hash::make(self::DEFAULT_PASSWORD),
+                'position' => 'AI köməkçi',
+                'source_type' => 'local',
+                'is_active' => true,
+            ]
+        );
+        $aiEmployee->assignRole(UserRole::Employee->value);
+
         $parsed = $this->parseDirectory();
         $emailCounts = [];
         $createdEmployees = 1;
@@ -837,6 +850,15 @@ TXT;
                 $createdEmployees++;
             }
 
+            $space->members()->syncWithoutDetaching([
+                $aiEmployee->id => [
+                    'space_role' => 'employee',
+                    'is_manager' => false,
+                    'can_create_boards' => false,
+                    'added_by' => $admin->id,
+                ],
+            ]);
+
             if (!$departmentData['manager']) {
                 $space->update(['manager_employee_id' => null]);
             }
@@ -866,6 +888,12 @@ TXT;
                         ],
                     ]);
                 }
+
+                $board->members()->syncWithoutDetaching([
+                    $aiEmployee->id => [
+                        'added_by' => $boardCreator->id,
+                    ],
+                ]);
             }
         }
 

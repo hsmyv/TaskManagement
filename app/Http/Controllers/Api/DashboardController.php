@@ -84,7 +84,11 @@ class DashboardController extends Controller
                 ->where('due_date', '<=', now()->addDays($days)->toDateString());
         }
         if ($request->filled('q')) {
-            $taskQuery->where('title', 'like', "%{$request->q}%");
+            $search = $request->q;
+            $taskQuery->where(function ($query) use ($search) {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhereHas('board', fn ($board) => $board->where('name', 'like', "%{$search}%"));
+            });
         }
 
         $tasks = $taskQuery->latest()->get();
@@ -117,6 +121,22 @@ class DashboardController extends Controller
             'my_spaces' => SpaceResource::collection($spaces),
             'tasks' => TaskResource::collection($tasks),
             'grouped_tasks' => $groupedTasks,
+            'space_stats' => Space::query()
+                ->where('is_active', true)
+                ->withCount([
+                    'tasks as tasks_total' => fn ($query) => $query->whereNull('parent_task_id'),
+                    'tasks as todo_count' => fn ($query) => $query->whereNull('parent_task_id')->where('status', 'todo'),
+                    'tasks as in_progress_count' => fn ($query) => $query->whereNull('parent_task_id')->where('status', 'in_progress'),
+                    'tasks as waiting_count' => fn ($query) => $query->whereNull('parent_task_id')->where('status', 'waiting_for_approve'),
+                    'tasks as completed_count' => fn ($query) => $query->whereNull('parent_task_id')->where('status', 'completed'),
+                    'tasks as canceled_count' => fn ($query) => $query->whereNull('parent_task_id')->where('status', 'canceled'),
+                    'tasks as overdue_count' => fn ($query) => $query->whereNull('parent_task_id')
+                        ->whereNotIn('status', ['completed', 'canceled'])
+                        ->whereNotNull('due_date')
+                        ->where('due_date', '<', now()->toDateString()),
+                    'boards',
+                ])
+                ->get(['id', 'name']),
 
             'unread_notifications' => Notification::where('employee_id', $employee->id)
                 ->unread()

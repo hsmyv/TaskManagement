@@ -20,6 +20,14 @@ class BoardTaskController extends Controller
         $this->authorize('view', $board);
         $this->authorize('create', [Task::class, $space]);
 
+        if ($board->archived_at) {
+            return response()->json(['message' => 'Arxivlənmiş boardda tapşırıq yaratmaq olmaz.'], 422);
+        }
+
+        if ($board->deadline && $board->deadline->isPast()) {
+            return response()->json(['message' => 'Boardun deadline vaxtı keçib. Bu boardda yeni tapşırıq yaratmaq olmaz.'], 422);
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -31,6 +39,10 @@ class BoardTaskController extends Controller
             'assignee_ids.*' => ['integer', 'exists:employees,id'],
             'assigned_by_id' => ['nullable', 'integer', 'exists:employees,id'],
         ]);
+
+        if (!empty($validated['due_date']) && $board->deadline && $validated['due_date'] > $board->deadline->toDateString()) {
+            return response()->json(['message' => 'Tapşırığın son tarixi board deadline tarixindən sonra ola bilməz.'], 422);
+        }
 
         $pos = (int) (Task::where('board_id', $board->id)->max('board_position') ?? 0) + 1;
 
@@ -89,6 +101,18 @@ class BoardTaskController extends Controller
         if ($newBoardId) {
             $contextBoard = Board::with('space')->findOrFail((int) $newBoardId);
             $this->authorize('view', $contextBoard);
+
+            if ($contextBoard->archived_at) {
+                return response()->json(['message' => 'Arxivlənmiş boarda tapşırıq sürükləmək olmaz.'], 422);
+            }
+
+            if ($contextBoard->deadline && $contextBoard->deadline->isPast()) {
+                return response()->json(['message' => 'Boardun deadline vaxtı keçib. Tapşırığı bu boarda sürükləmək olmaz.'], 422);
+            }
+
+            if ($task->due_date && $contextBoard->deadline && $task->due_date->toDateString() > $contextBoard->deadline->toDateString()) {
+                return response()->json(['message' => 'Tapşırığın son tarixi board deadline tarixindən sonra olduğu üçün sürükləmək olmaz.'], 422);
+            }
         }
 
         $task->board_id = $newBoardId ? (int) $newBoardId : null;

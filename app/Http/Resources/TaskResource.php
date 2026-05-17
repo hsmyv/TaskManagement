@@ -27,6 +27,8 @@ class TaskResource extends JsonResource
             'visibility'       => $this->visibility,
             'require_approval' => $this->require_approval,
             'deadline_locked'  => $this->deadline_locked,
+            'created_by'       => $this->created_by,
+            'assigned_by_id'   => $this->assigned_by,
             'is_overdue'       => $this->isOverdue(),
             'is_subtask'       => $this->isSubtask(),
             'progress'         => $this->progress_percentage,

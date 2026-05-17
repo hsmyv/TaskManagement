@@ -31,6 +31,15 @@
     .tis-modal-scroll:focus-within::-webkit-scrollbar-thumb {
         background-color: rgba(255, 255, 255, 0.28);
     }
+    .tis-modern-select {
+        background: rgba(255, 255, 255, .18);
+        border: 1px solid rgba(255,255,255,.28);
+        border-radius: 12px;
+        min-height: 38px;
+        padding: 0 34px 0 12px;
+        color: #fff;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+    }
 </style>
 <div x-data="spaceHub({{ $space->id }})" x-init="init()" class="px-3 sm:px-4 lg:px-6 pt-4 sm:pt-5 space-y-5 text-white">
     @php($spaceMembers = $space->members->sortByDesc(fn($member) => (($member->pivot->is_manager ?? false) || $space->manager_employee_id === $member->id))->values())
@@ -59,7 +68,7 @@
                             <h3 class="text-base font-semibold text-white">Space üzvləri</h3>
                             <span class="text-xs text-white/55">{{ $spaceMembers->count() }} nəfər</span>
                         </div>
-                        <div class="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                        <div class="space-y-3 max-h-[360px] overflow-y-auto pr-1 tis-modal-scroll">
                             @forelse($spaceMembers as $member)
                                 <div class="flex items-center gap-3 rounded-2xl bg-white/5 border border-white/8 px-3 py-3">
                                     <img src="{{ $member->avatar_url }}" alt="{{ $member->full_name }}" class="w-11 h-11 rounded-full object-cover ring-2 ring-white/10">
@@ -85,7 +94,7 @@
                 <div class="space-y-8">
                     <div>
                         <div class="flex items-center justify-between mb-3">
-                            <h2 class="text-[18px] sm:text-[20px] font-medium">Tapşırıqlarım</h2>
+                            <h2 class="text-[18px] sm:text-[20px] font-medium">Tapşırıqlar</h2>
                             <button @click="openCreateTask()" class="w-11 h-11 rounded-2xl bg-[#0d254f] border border-white/10 flex items-center justify-center text-2xl leading-none hover:bg-[#113063] transition-all" title="Yeni tapşırıq">+</button>
                         </div>
 
@@ -133,6 +142,7 @@
                         <div>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 justify-end">
+                            <button @click="openArchivedBoards()" class="h-11 px-5 rounded-xl bg-white/15 text-white text-sm font-medium border border-white/10 hover:bg-white/20 transition-all">Layihələr</button>
                             <button x-show="canCreateBoard" @click="openCreateBoard()" class="h-11 px-5 rounded-xl bg-[#20356d] text-white text-sm font-medium shadow-lg hover:bg-[#182b5d] transition-all">Layihə əlavə edin</button>
                             <button @click="exportTasks()" class="h-11 px-5 rounded-xl bg-[#6d44c5] text-white text-sm font-medium shadow-lg hover:bg-[#613db1] transition-all flex items-center gap-2">
                                 Export
@@ -155,7 +165,7 @@
                                         <h3 class="text-[19px] leading-tight font-medium truncate" x-text="b.name" :title="b.name"></h3>
                                         <p class="text-white/70 text-sm mt-1" x-text="b.description || ($space?->description ?? 'Departamentin işləri ilə bağlı tapşırıqlar və layihələr')"></p>
                                     </div>
-                                    <span class="text-sm text-white/80" x-text="b.due_date ? formatDate(b.due_date) : '29/04'"></span>
+                                    <span class="text-sm text-white/80" x-text="b.deadline ? formatDate(b.deadline) : '-'"></span>
                                 </div>
 
                                 <div class="mt-6">
@@ -173,7 +183,7 @@
                                 </div>
 
                                 <div class="mt-6 flex items-end justify-between gap-3">
-                                    <button type="button" @click.prevent="openCreateTask()" class="w-11 h-11 rounded-2xl bg-[#10325f] border border-white/10 flex items-center justify-center text-2xl hover:bg-[#0d274d] transition-all">+</button>
+                                    <button type="button" @click.prevent="openCreateTask(b.id)" class="w-11 h-11 rounded-2xl bg-[#10325f] border border-white/10 flex items-center justify-center text-2xl hover:bg-[#0d274d] transition-all">+</button>
                                     <div class="flex -space-x-3" x-show="boardAssignees(b).length">
                                   <template x-for="member in boardAssignees(b)" :key="`board-member-${b.id}-${member.id}`">
                                         <img
@@ -189,12 +199,14 @@
                             </a>
                         </template>
 
-                        <template x-if="!boardsLoading && boards.length === 0">
+                        <button x-show="canCreateBoard" @click="openCreateBoard()">
+                        <template x-if="!boardsLoading">
                             <div class="rounded-[24px] min-h-[250px] bg-white/20 border border-white/30 flex flex-col items-center justify-center text-[#5d6486] shadow-inner">
                                 <div class="text-6xl leading-none">+</div>
                                 <p class="mt-3 text-xl font-medium">Layihə əlavə edin</p>
                             </div>
                         </template>
+                        </button>
                     </div>
 
                     <div class="space-y-5 pt-2">
@@ -288,7 +300,7 @@
                                                     <span class="truncate" x-text="t.creator?.full_name || '—'"></span>
                                                 </div>
                                                 <div class="text-white/85" x-text="t.due_date ? formatDate(t.due_date) : '—'"></div>
-                                                <div class="text-white/85" x-text="priorityLabel(t.priority) || 'Normal'"></div>
+                                                <div class="text-white/85" x-text="priorityLabel(t.priority) || 'Orta'"></div>
                                                 <div class="flex items-center gap-3">
                                                     <div class="h-2.5 w-full rounded-full bg-[#17305f] overflow-hidden">
                                                         <div class="h-2.5 rounded-full" :class="taskProgress(t) === 100 ? 'bg-[#22d34f]' : 'bg-[#c79a40]'" :style="`width:${taskProgress(t)}%`"></div>
@@ -311,11 +323,12 @@
         <div @click.stop x-transition.scale class="w-full max-w-md rounded-[28px] bg-gradient-to-b from-[#233d82] to-[#182b5d] border border-white/10 shadow-tis text-white overflow-hidden">
             <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
                 <h2 class="font-semibold text-lg">Yeni Board</h2>
-                <button @click="showCreateBoardModal=false" class="text-white/60 hover:text-white">✕</button>
+                <button @click="showCreateBoardModal=false" class="text-white/60 hover:text-white">×</button>
             </div>
             <div class="p-6 space-y-4">
                 <input x-model="newBoard.name" placeholder="Board adı..." class="w-full h-12 rounded-xl px-4 tis-input">
                 <textarea x-model="newBoard.description" rows="3" placeholder="Təsvir (opsional)..." class="w-full rounded-xl px-4 py-3 tis-input resize-none"></textarea>
+                <input type="date" x-model="newBoard.deadline" class="w-full h-12 rounded-xl px-4 tis-input">
                 <p x-show="boardError" x-text="boardError" class="text-sm text-red-200 bg-red-500/15 rounded-xl px-3 py-2"></p>
             </div>
             <div class="px-6 pb-6 flex justify-end gap-3">
@@ -325,11 +338,32 @@
         </div>
     </div>
 
+    <div x-show="showArchivedBoardsModal" x-transition.opacity class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div @click.stop x-transition.scale class="w-full max-w-2xl rounded-[28px] bg-gradient-to-b from-[#233d82] to-[#182b5d] border border-white/10 shadow-tis text-white overflow-hidden">
+            <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                <h2 class="font-semibold text-lg">Arxiv layihələr</h2>
+                <button @click="showArchivedBoardsModal=false" class="text-white/60 hover:text-white">x</button>
+            </div>
+            <div class="p-6 space-y-3 max-h-[60vh] overflow-y-auto tis-modal-scroll">
+                <template x-for="b in archivedBoards" :key="`archived-${b.id}`">
+                    <div class="rounded-2xl bg-white/8 border border-white/10 px-4 py-3 flex items-center justify-between gap-4">
+                        <div class="min-w-0">
+                            <p class="font-medium truncate" x-text="b.name"></p>
+                            <p class="text-xs text-white/55 mt-1" x-text="`Yaranıb: ${formatDate(b.created_at)} • Deadline: ${b.deadline ? formatDate(b.deadline) : '-'}`"></p>
+                        </div>
+                        <button x-show="b.can?.archive || b.can?.update" @click="unarchiveBoard(b)" class="px-3 py-2 rounded-xl bg-[#22d34f]/20 text-[#8effa9] border border-[#22d34f]/30 text-xs">Arxivdən çıxart</button>
+                    </div>
+                </template>
+                <div x-show="!archivedBoards.length" class="text-sm text-white/55">Arxivdə layihə yoxdur</div>
+            </div>
+        </div>
+    </div>
+
     <div x-show="showCreateModal" x-transition.opacity class="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
         <div @click.stop x-transition.scale class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[30px] bg-gradient-to-b from-[#233d82] to-[#182b5d] border border-white/10 shadow-tis text-white">
             <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
                 <h2 class="font-semibold text-lg">Yeni Tapşırıq</h2>
-                <button @click="showCreateModal = false" class="text-white/60 hover:text-white">✕</button>
+                <button @click="showCreateModal = false" class="text-white/60 hover:text-white">×</button>
             </div>
             <form @submit.prevent="createTask()" class="p-6 space-y-4">
                 <div>
@@ -369,7 +403,7 @@
                             <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-2 rounded-full border border-white/10">
                                 <img :src="emp.avatar_url" class="w-5 h-5 rounded-full object-cover">
                                 <span x-text="emp.full_name"></span>
-                                <button type="button" @click="remove(emp.id)" class="hover:text-red-300">✕</button>
+                                <button type="button" @click="remove(emp.id)" class="hover:text-red-300">×</button>
                             </span>
                         </template>
                     </div>
@@ -420,7 +454,7 @@
                                         newTask.assigned_by_id = null;
                                     "
                                     class="hover:text-red-300"
-                                >✕</button>
+                                >×</button>
                             </span>
                         </template>
                     </div>
@@ -485,7 +519,7 @@
                 </div>
                 <p class="text-xs sm:text-sm text-white/55 mt-1" x-text="taskDetail?.space?.name || ''"></p>
             </div>
-            <button @click="closeTaskModal()" class="text-white/60 hover:text-white text-lg">✕</button>
+            <button @click="closeTaskModal()" class="text-white/60 hover:text-white text-lg">×</button>
         </div>
 
         <div class="grid grid-cols-12 h-[calc(88vh-72px)] overflow-hidden">
@@ -496,12 +530,23 @@
                         <p class="text-white/45 mb-1 text-xs">Status</p>
                         <div class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/8 border border-white/10">
                             <span class="w-2.5 h-2.5 rounded-full bg-[#f3ad1e]"></span>
-                            <span x-text="statusLabel(taskDetail?.status)"></span>
+                            <select x-show="canEditTask(taskDetail)" x-model="taskDetail.status" @change="saveTaskStatus(taskDetail.status)" class="tis-modern-select text-sm focus:outline-none">
+                                <template x-for="s in statusSections" :key="`modal-status-${s.key}`">
+                                    <option class="text-slate-900" :value="s.key" x-text="s.label"></option>
+                                </template>
+                            </select>
+                            <span x-show="!canEditTask(taskDetail)" x-text="statusLabel(taskDetail?.status)"></span>
                         </div>
                     </div>
                     <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
                         <p class="text-white/45 mb-1 text-xs">Prioritet</p>
-                        <p class="text-white font-medium" x-text="priorityLabel(taskDetail?.priority) || 'Normal'"></p>
+                        <select x-show="canEditTask(taskDetail)" x-model="taskDetail.priority" @change="saveTaskPriority(taskDetail.priority)" class="tis-modern-select w-full font-medium focus:outline-none">
+                            <option class="text-slate-900" value="low">Aşağı</option>
+                            <option class="text-slate-900" value="medium">Orta</option>
+                            <option class="text-slate-900" value="high">Yüksək</option>
+                            <option class="text-slate-900" value="urgent">Təcili</option>
+                        </select>
+                        <p x-show="!canEditTask(taskDetail)" class="text-white font-medium" x-text="priorityLabel(taskDetail?.priority) || 'Orta'"></p>
                     </div>
                 </div>
 
@@ -548,7 +593,7 @@
                                     <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10">
                                         <img :src="emp.avatar_url" class="w-4 h-4 rounded-full object-cover">
                                         <span x-text="emp.full_name"></span>
-                                        <button type="button" @click="removeTaskAssignee(emp.id)" class="hover:text-red-300">✕</button>
+                                        <button type="button" @click="removeTaskAssignee(emp.id)" class="hover:text-red-300">×</button>
                                     </span>
                                 </template>
                             </div>
@@ -620,7 +665,7 @@
                                     <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10">
                                         <img :src="emp.avatar_url" class="w-4 h-4 rounded-full object-cover">
                                         <span x-text="emp.full_name"></span>
-                                        <button type="button" @click="remove(emp.id)" class="hover:text-red-300">✕</button>
+                                        <button type="button" @click="remove(emp.id)" class="hover:text-red-300">×</button>
                                     </span>
                                 </template>
                             </div>
@@ -671,7 +716,7 @@
                                                 <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10">
                                                     <img :src="emp.avatar_url" class="w-4 h-4 rounded-full object-cover">
                                                     <span x-text="emp.full_name"></span>
-                                                    <button type="button" @click="remove(emp.id)" class="hover:text-red-300">✕</button>
+                                                    <button type="button" @click="remove(emp.id)" class="hover:text-red-300">×</button>
                                                 </span>
                                             </template>
                                         </div>
@@ -870,12 +915,15 @@ function spaceHub(spaceId) {
         boardsLoading: false,
         boards: [],
         showCreateBoardModal: false,
+        showArchivedBoardsModal: false,
+        archivedBoards: [],
         savingBoard: false,
         boardError: '',
-        newBoard: { name: '', description: '' },
+        newBoard: { name: '', description: '', deadline: '' },
 
         showCreateModal: false,
         creating: false,
+        createBoardId: null,
         newTask: { title:'', description:'', priority:'medium', visibility:'all_members', start_date: new Date().toISOString().split('T')[0], due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false, assigned_by_id: null },
         myTasksLoading: false,
         myTasks: [],
@@ -941,7 +989,7 @@ newChecklistItem: { title: '' },
         async loadMyTasks() {
             this.myTasksLoading = true;
             try {
-                const res = await api('GET', `/spaces/${this.spaceId}/tasks?created_by=${AUTH_USER.id}`);
+                const res = await api('GET', `/spaces/${this.spaceId}/tasks?created_by=${AUTH_USER.id}&unassigned_board=1`);
                 this.myTasks = Array.isArray(res) ? res : (res?.data || []);
             } catch(e) {
                 this.myTasks = [];
@@ -969,7 +1017,7 @@ newChecklistItem: { title: '' },
 
         openCreateBoard() {
             this.boardError = '';
-            this.newBoard = { name: '', description: '' };
+            this.newBoard = { name: '', description: '', deadline: '' };
             this.showCreateBoardModal = true;
         },
 
@@ -985,6 +1033,26 @@ newChecklistItem: { title: '' },
                 this.boardError = e.message || 'Xəta';
             } finally {
                 this.savingBoard = false;
+            }
+        },
+
+        async openArchivedBoards() {
+            this.showArchivedBoardsModal = true;
+            try {
+                const res = await api('GET', `/spaces/${this.spaceId}/boards?archived=1`);
+                this.archivedBoards = res.data || [];
+            } catch(e) {
+                this.archivedBoards = [];
+            }
+        },
+
+        async unarchiveBoard(board) {
+            try {
+                await api('PATCH', `/boards/${board.id}/unarchive`);
+                this.archivedBoards = this.archivedBoards.filter(item => item.id !== board.id);
+                await this.loadBoards();
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Layihə arxivdən çıxmadı', type:'error' } }));
             }
         },
 
@@ -1019,6 +1087,32 @@ newChecklistItem: { title: '' },
                 && task.status !== 'completed'
                 && task.status !== 'canceled'
                 && task.creator?.id === AUTH_USER?.id;
+        },
+
+        async saveTaskPriority(priority) {
+            if (!this.taskDetail?.id) return;
+            try {
+                await api('PUT', `/tasks/${this.taskDetail.id}`, { priority });
+                await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped(), this.loadBoards()]);
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Prioritet dəyişmədi', type:'error' } }));
+            }
+        },
+
+        async saveTaskStatus(status) {
+            if (!this.taskDetail?.id) return;
+            try {
+                if (status === 'completed') {
+                    await api('PATCH', `/tasks/${this.taskDetail.id}/approve`);
+                } else {
+                    await api('PATCH', `/tasks/${this.taskDetail.id}/order`, { status });
+                }
+                await this.refreshTaskDetail();
+                await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped(), this.loadBoards()]);
+            } catch(e) {
+                await this.refreshTaskDetail().catch(() => {});
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Status dəyişmədi', type:'error' } }));
+            }
         },
 
         canToggleChecklistItem(task) {
@@ -1133,8 +1227,9 @@ newChecklistItem: { title: '' },
             }
         },
 
-        openCreateTask() {
-            this.newTask = { title:'', description:'', priority:'medium', visibility:'all_members', start_date: new Date().toISOString().split('T')[0], due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false };
+        openCreateTask(boardId = null) {
+            this.createBoardId = boardId;
+            this.newTask = { title:'', description:'', priority:'medium', visibility:'all_members', start_date: new Date().toISOString().split('T')[0], due_date:'', assignee_ids:[], require_approval:false, deadline_locked:false, assigned_by_id: null };
             this.showCreateModal = true;
         },
 
@@ -1142,8 +1237,13 @@ newChecklistItem: { title: '' },
             if (!this.newTask.title.trim()) return;
             this.creating = true;
             try {
-                await api('POST', `/spaces/${this.spaceId}/tasks`, this.newTask);
+                if (this.createBoardId) {
+                    await api('POST', `/boards/${this.createBoardId}/tasks`, this.newTask);
+                } else {
+                    await api('POST', `/spaces/${this.spaceId}/tasks`, this.newTask);
+                }
                 this.showCreateModal = false;
+                this.createBoardId = null;
                 await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped(), this.loadBoards()]);
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq yaradıldı!', type:'success' } }));
             } catch(e) {
@@ -1285,7 +1385,7 @@ taskProgress(task) {
             this.taskCommentsLoading = true;
             try {
                 const data = await api('GET', `/tasks/${this.taskDetail.id}/comments`);
-                this.taskComments = Array.isArray(data) ? data : (data?.data || []);
+                this.taskComments = (Array.isArray(data) ? data : (data?.data || [])).sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
                 this.$nextTick(() => {
                     if (this.$refs.commentsList) this.$refs.commentsList.scrollTop = this.$refs.commentsList.scrollHeight;
                 });
@@ -1304,7 +1404,7 @@ taskProgress(task) {
         },
 
         async searchTaskAssignees() {
-            if ((this.taskAssigneeSearch || '').length < 2) { this.taskAssigneeResults = []; return; }
+            if ((this.taskAssigneeSearch || '').length < 1) { this.taskAssigneeResults = []; return; }
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.taskAssigneeSearch)}`;
                 if (this.spaceId) url += `&space_id=${this.spaceId}`;
@@ -1360,6 +1460,7 @@ taskProgress(task) {
             try {
                 await api('POST', `/tasks/${this.taskDetail.id}/subtasks`, this.newInlineSubtask);
                 this.newInlineSubtask = { title:'', due_date:'', assignee_ids:[] };
+                window.dispatchEvent(new CustomEvent('reset-employee-picker'));
                 this.showInlineSubtaskForm = false;
                 await this.refreshTaskDetail();
                 await Promise.all([this.loadMyTasks(), this.loadSpaceGrouped()]);
@@ -1508,6 +1609,7 @@ async updateChecklistItem(item) {
             try {
                 const comment = await api('POST', `/tasks/${this.taskDetail.id}/comments`, { body: this.quickComment });
                 this.taskComments.push(comment);
+                this.taskComments.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
                 this.quickComment = '';
                 this.$nextTick(() => {
                     if (this.$refs.commentsList) this.$refs.commentsList.scrollTop = this.$refs.commentsList.scrollHeight;
@@ -1531,13 +1633,13 @@ async updateChecklistItem(item) {
             }[s] || (s || '—');
         },
 
-        priorityLabel(p) { return { low:'Aşağı', medium:'Normal', high:'High', urgent:'Təcili' }[p] || (p || ''); },
+        priorityLabel(p) { return { low:'Aşağı', medium:'Orta', high:'Yüksək', urgent:'Təcili' }[p] || (p || ''); },
         formatDate(dt) {
             if (!dt) return '';
                 const date = new Date(dt);
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
+            const year = String(date.getFullYear());
             return `${day}/${month}/${year}`;
         },
     }
@@ -1555,10 +1657,16 @@ function employeePicker(spaceId = null) {
         init(initialSelected = [], single = false) {
             this.single = single;
             this.selected = Array.isArray(initialSelected) ? initialSelected : [];
+            window.addEventListener('reset-employee-picker', () => {
+                this.selected = [];
+                this.search = '';
+                this.results = [];
+                this.open = false;
+            });
         },
 
         async searchEmployees() {
-            if ((this.search || '').length < 2) {
+            if ((this.search || '').length < 1) {
                 this.results = [];
                 return;
             }
@@ -1622,3 +1730,6 @@ function employeePicker(spaceId = null) {
 
 </script>
 @endpush
+
+
+

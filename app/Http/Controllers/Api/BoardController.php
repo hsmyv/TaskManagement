@@ -13,13 +13,16 @@ use Illuminate\Http\Request;
 
 class BoardController extends Controller
 {
-public function index(Space $space): JsonResponse
+public function index(Request $request, Space $space): JsonResponse
 {
     $this->authorize('view', $space);
 
     $boards = $space->boards()
+        ->when(!$request->boolean('archived'), fn ($query) => $query->whereNull('archived_at'))
+        ->when($request->boolean('archived'), fn ($query) => $query->whereNotNull('archived_at'))
         ->with([
             'tasks.assignees',
+            'creator',
         ])
         ->withCount([
             'tasks',
@@ -33,7 +36,7 @@ public function index(Space $space): JsonResponse
         ->get();
 
     return response()->json([
-        'data' => $boards
+        'data' => BoardResource::collection($boards),
     ]);
 }
 
@@ -44,6 +47,7 @@ public function index(Space $space): JsonResponse
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'deadline' => ['nullable', 'date'],
             'member_ids' => ['nullable', 'array'],
             'member_ids.*' => ['integer', 'exists:employees,id'],
         ]);
@@ -52,6 +56,7 @@ public function index(Space $space): JsonResponse
             'space_id' => $space->id,
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
+            'deadline' => $validated['deadline'] ?? null,
             'created_by' => $request->user()->id,
         ]);
 
@@ -78,6 +83,32 @@ public function index(Space $space): JsonResponse
         ], 201);
     }
 
+    public function archive(Request $request, Board $board, ActivityLogger $logger): JsonResponse
+    {
+        $this->authorize('update', $board);
+
+        $board->update(['archived_at' => now()]);
+
+        $logger->log($request->user(), 'archive', 'board', $board->id, $board->space, $board, [
+            'name' => $board->name,
+        ]);
+
+        return response()->json(['data' => new BoardResource($board->fresh(['creator']))]);
+    }
+
+    public function unarchive(Request $request, Board $board, ActivityLogger $logger): JsonResponse
+    {
+        $this->authorize('update', $board);
+
+        $board->update(['archived_at' => null]);
+
+        $logger->log($request->user(), 'unarchive', 'board', $board->id, $board->space, $board, [
+            'name' => $board->name,
+        ]);
+
+        return response()->json(['data' => new BoardResource($board->fresh(['creator']))]);
+    }
+
     public function show(Request $request, Board $board): JsonResponse
     {
         $this->authorize('view', $board);
@@ -89,6 +120,7 @@ public function index(Space $space): JsonResponse
 
         $board->load([
             'space',
+            'creator',
             'tasks' => function ($q) use ($request) {
                 $q->whereNull('parent_task_id')
                     ->with(['assignees'])

@@ -73,6 +73,13 @@ class TaskService
                 );
             }
 
+            if (isset($data['due_date'])) {
+                $task->loadMissing('board');
+                if ($task->board?->deadline && $data['due_date'] > $task->board->deadline->toDateString()) {
+                    abort(422, 'Tapşırığın son tarixi board deadline tarixindən sonra ola bilməz.');
+                }
+            }
+
             $changes  = [];
             $fillable = [
                 'title', 'description', 'priority', 'start_date',
@@ -126,7 +133,16 @@ class TaskService
             $isDirectSubtaskCompletion = $task->isSubtask()
                 && $resolvedStatus === TaskStatus::Completed;
 
-            if (!$isDirectSubtaskCompletion && !$currentStatus->canTransitionTo($resolvedStatus)) {
+            $task->loadMissing('space');
+            $canManagerReturnCompleted = $currentStatus === TaskStatus::Completed
+                && in_array($resolvedStatus, [TaskStatus::Todo, TaskStatus::InProgress, TaskStatus::WaitingForApprove], true)
+                && (
+                    $changer->hasGlobalAccess()
+                    || $changer->isSpaceManager($task->space)
+                    || in_array($changer->spaceRole($task->space), ['senior_manager', 'middle_manager'], true)
+                );
+
+            if (!$isDirectSubtaskCompletion && !$canManagerReturnCompleted && !$currentStatus->canTransitionTo($resolvedStatus)) {
                 abort(422, "'{$currentStatus->label()}' → '{$resolvedStatus->label()}' keçidi mümkün deyil.");
             }
 

@@ -111,6 +111,10 @@ class TaskPolicy
 
     public function approve(Employee $employee, Task $task): bool
     {
+        if ($task->isSubtask()) {
+            return $task->created_by === $employee->id || $task->isAssignee($employee) || $employee->hasGlobalAccess();
+        }
+
         return $task->created_by === $employee->id;
     }
 
