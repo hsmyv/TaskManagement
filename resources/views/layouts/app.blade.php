@@ -412,10 +412,17 @@ function notificationBell() {
         },
 
         async markRead(n) {
-            if (n.is_read) return;
-            await api('PATCH', `/notifications/${n.id}/read`);
-            n.is_read = true;
-            this.unread = Math.max(0, this.unread - 1);
+            if (!n.is_read) {
+                await api('PATCH', `/notifications/${n.id}/read`);
+                n.is_read = true;
+                this.unread = Math.max(0, this.unread - 1);
+            }
+
+            const taskId = n.data?.task_id || n.notifiable_entity_id;
+            if (taskId) {
+                this.open = false;
+                window.dispatchEvent(new CustomEvent('open-task-modal', { detail: { taskId } }));
+            }
         },
 
         async markAllRead() {

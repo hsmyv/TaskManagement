@@ -159,6 +159,12 @@
                             </div>
                         </div>
                     </template>
+                    <div class="flex items-center gap-2 rounded-[14px] bg-white/25 border border-white/25 px-3 py-2 text-white">
+                        <span class="text-xs text-white/75">Tarix</span>
+                        <input type="date" x-model="filters.dateFrom" @change="refresh()" class="h-8 rounded-lg bg-white/90 text-slate-700 px-2 text-xs focus:outline-none">
+                        <span class="text-white/50">-</span>
+                        <input type="date" x-model="filters.dateTo" @change="refresh()" class="h-8 rounded-lg bg-white/90 text-slate-700 px-2 text-xs focus:outline-none">
+                    </div>
                     <div class="hidden relative">
                         <select x-model="filters.priority" @change="refresh()" class="tis-select pl-4 pr-10 w-[190px] appearance-none focus:outline-none">
                             <option value="">Bütün prioritetlər</option>
@@ -278,7 +284,14 @@
                                             <td class="py-3.5 pr-4 align-middle">
                                                 <div class="flex items-center gap-3 min-w-0">
                                                     <span class="w-3 h-3 rounded-full shrink-0" :style="`background:${taskStatusDotColor(t.status, t.is_overdue)}`"></span>
-                                                    <span class="truncate text-[15px]" :class="t.is_overdue ? 'text-red-400' : 'text-white/92'" x-text="t.title"></span>
+                                                    <div class="min-w-0">
+                                                        <span class="truncate block text-[15px]" :title="t.title" :class="t.is_overdue ? 'text-red-400' : 'text-white/92'" x-text="t.title"></span>
+                                                        <div class="mt-1 flex items-center gap-3 text-[11px] text-white/45">
+                                                            <span x-text="`Şərh ${t.comments_count ?? 0}`"></span>
+                                                            <span x-text="`Fayl ${t.attachments_count ?? 0}`"></span>
+                                                            <span x-text="`Alt ${t.completed_subtasks_count ?? 0}/${t.subtasks_count ?? ((t.subtasks || []).length)}`"></span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td class="py-3.5 pr-4 align-middle text-[15px] text-white/92">
@@ -436,7 +449,7 @@
             <div class="px-5 py-4 flex items-center justify-between border-b border-white/10">
                 <div class="min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <h2 class="text-[18px] sm:text-[22px] font-semibold truncate" x-text="taskDetail?.title || 'Tapşırıq'"></h2>
+                        <h2 class="text-[18px] sm:text-[22px] font-semibold whitespace-normal break-words leading-snug" x-text="taskDetail?.title || 'Tapşırıq'"></h2>
                         <template x-if="taskDetail?.assigner?.full_name">
                             <span class="text-sm text-white/65">- <span x-text="taskDetail.assigner.full_name"></span> tərəfindən</span>
                         </template>
@@ -475,6 +488,7 @@
                     <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
                         <div class="flex items-center justify-between gap-4">
                             <h3 class="text-base font-semibold">Təsvir</h3>
+                            <button x-show="canEditTask(taskDetail)" @click="openTaskMainEditor()" class="text-[11px] px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/10">Redaktə et</button>
                             <div class="flex items-center gap-3 min-w-[110px]">
                                 <div class="h-2.5 flex-1 rounded-full bg-[#0d214d] overflow-hidden">
                                     <div class="h-2.5 rounded-full bg-[#c5a13c]" :style="`width:${progressPercent(taskDetail)}%`"></div>
@@ -482,7 +496,14 @@
                                 <span class="text-xs text-white/70" x-text="`${progressPercent(taskDetail) || 0}%`"></span>
                             </div>
                         </div>
-                        <p class="text-sm text-white/72 leading-6 whitespace-pre-wrap" x-text="taskDetail?.description || 'Departamentin işləri ilə bağlı tapşırıq təsviri əlavə edilməyib.'"></p>
+                        <div x-show="!editingTaskMain" class="space-y-2">
+                            <p class="text-sm text-white/72 leading-6 whitespace-pre-wrap" x-text="taskDetail?.description || 'Departamentin işləri ilə bağlı tapşırıq təsviri əlavə edilməyib.'"></p>
+                        </div>
+                        <div x-show="editingTaskMain" class="space-y-3">
+                            <input type="text" x-model="taskMainForm.title" class="w-full h-11 rounded-xl px-4 tis-input" placeholder="Başlıq">
+                            <textarea x-model="taskMainForm.description" rows="4" class="w-full rounded-xl px-4 py-3 tis-input resize-none" placeholder="Təsvir"></textarea>
+                            <div class="flex justify-end gap-2"><button @click="editingTaskMain=false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button><button @click="saveTaskMain()" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Saxla</button></div>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3" x-show="taskDetail">
@@ -529,7 +550,45 @@
                     <div x-show="canShowApprovePrompt(taskDetail)" x-ref="approvalPanelVisible" class="rounded-2xl border border-[#f3ad1e]/35 bg-[#f3ad1e]/10 p-4 space-y-3"><div><h3 class="text-base font-semibold text-[#ffd37a]">Təsdiq gözləyir</h3><p class="text-sm text-white/65 mt-1">Bu tapşırığı tamamlandı kimi təsdiqləmək yalnız taskı yaradan şəxsə açıqdır.</p></div><button @click="approveTask()" :disabled="approvingTask" class="px-4 py-2.5 rounded-xl bg-[#f3ad1e] hover:bg-[#e9a114] text-[#182d65] text-sm font-semibold disabled:opacity-60"><span x-text="approvingTask ? 'Təsdiqlənir...' : 'Təsdiqlə'"></span></button></div>
                     <div x-show="canCancelTask(taskDetail)" class="pt-2 flex justify-end"><button @click="cancelTask()" :disabled="cancelingTask" class="px-5 py-2.5 rounded-xl bg-[#d9364f] hover:bg-[#c92d45] text-white text-sm font-semibold disabled:opacity-60"><span x-text="cancelingTask ? 'Ləğv edilir...' : 'Ləğv et'"></span></button></div>
                 </div>
-                <div class="col-span-12 lg:col-span-5 p-4 sm:p-5 border-l border-white/10 bg-[#163067]/80 overflow-y-auto tis-modal-scroll"><div class="rounded-2xl bg-[#132857] border border-white/10 p-4 space-y-4 h-full flex flex-col"><div class="flex items-center justify-between gap-4"><h3 class="text-base font-semibold">Şərhlər</h3><button @click="loadTaskComments()" class="text-[11px] text-white/45 hover:text-white">Yenilə</button></div><div class="space-y-3 overflow-y-auto flex-1 pr-1 tis-modal-scroll"><template x-if="commentsLoading"><div class="text-sm text-white/45">Şərhlər yüklənir...</div></template><template x-for="comment in comments" :key="`comment-new-${comment.id}`"><div class="flex gap-3"><img :src="comment.author?.avatar_url || defaultAvatar" class="w-8 h-8 rounded-full object-cover mt-1"><div class="flex-1 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5"><div class="flex items-center gap-2 mb-1 flex-wrap"><span class="text-sm font-medium" x-text="comment.author?.full_name || 'İstifadəçi'"></span><span class="text-[10px] text-white/45" x-text="comment.created_at ? formatDateTime(comment.created_at) : ''"></span></div><p class="text-sm text-white/75 whitespace-pre-wrap" x-text="comment.body || comment.content || ''"></p></div></div></template><div x-show="!commentsLoading && comments.length === 0" class="text-sm text-white/45">Hələ şərh yoxdur</div></div><div class="pt-2 space-y-3"><textarea x-model="quickComment" rows="3" placeholder="Şərh yazın" class="w-full rounded-2xl px-4 py-3 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none"></textarea><div class="flex justify-end"><button @click="submitTaskComment()" :disabled="!quickComment.trim()" class="px-4 py-2.5 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm disabled:opacity-50">Göndər</button></div></div></div></div>
+                <div class="col-span-12 lg:col-span-5 p-4 sm:p-5 border-l border-white/10 bg-[#163067]/80 overflow-y-auto tis-modal-scroll">
+                    <div class="rounded-2xl bg-[#132857] border border-white/10 p-4 space-y-4 h-full flex flex-col">
+                        <div class="flex items-center justify-between gap-4">
+                            <h3 class="text-base font-semibold">Şərhlər</h3>
+                            <button @click="loadTaskComments()" class="text-[11px] text-white/45 hover:text-white">Yenilə</button>
+                        </div>
+                        <div class="space-y-3 overflow-y-auto flex-1 pr-1 tis-modal-scroll">
+                            <template x-if="commentsLoading"><div class="text-sm text-white/45">Şərhlər yüklənir...</div></template>
+                            <template x-for="comment in flattenComments(comments)" :key="`comment-new-${comment.id}`">
+                                <div class="flex gap-3" :style="`margin-left: ${comment._depth * 18}px`">
+                                    <img :src="comment.author?.avatar_url || defaultAvatar" class="w-8 h-8 rounded-full object-cover mt-1">
+                                    <div class="flex-1 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                            <span class="text-sm font-medium" x-text="comment.author?.full_name || 'İstifadəçi'"></span>
+                                            <span class="text-[10px] text-white/45" x-text="comment.created_at ? formatDateTime(comment.created_at) : ''"></span>
+                                        </div>
+                                        <p class="text-sm text-white/75 whitespace-pre-wrap" x-text="comment.body || comment.content || ''"></p>
+                                        <div class="mt-2 flex items-center gap-3">
+                                            <button type="button" @click="startReply(comment)" class="text-[11px] text-white/45 hover:text-white">Cavabla</button>
+                                            <span x-show="comment._depth >= 3 && (comment.replies || []).length" class="text-[11px] text-white/35">Daha çox cavab var</span>
+                                        </div>
+                                        <div x-show="replyingTo?.id === comment.id" class="mt-3 space-y-2">
+                                            <textarea x-model="replyText" rows="2" class="w-full rounded-xl px-3 py-2 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none" placeholder="Cavab yazın"></textarea>
+                                            <div class="flex justify-end gap-2">
+                                                <button @click="cancelReply()" class="px-3 py-1.5 rounded-lg bg-white/8 hover:bg-white/12 text-xs">Ləğv</button>
+                                                <button @click="submitReply(comment)" :disabled="!replyText.trim()" class="px-3 py-1.5 rounded-lg bg-[#6d44c5] hover:bg-[#613db1] text-xs disabled:opacity-50">Göndər</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="!commentsLoading && comments.length === 0" class="text-sm text-white/45">Hələ şərh yoxdur</div>
+                        </div>
+                        <div class="pt-2 space-y-3">
+                            <textarea x-model="quickComment" rows="3" placeholder="Şərh yazın" class="w-full rounded-2xl px-4 py-3 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none"></textarea>
+                            <div class="flex justify-end"><button @click="submitTaskComment()" :disabled="!quickComment.trim()" class="px-4 py-2.5 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm disabled:opacity-50">Göndər</button></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -839,10 +898,14 @@ function boardHub(spaceId, boardId) {
         commentsLoading: false,
         comments: [],
         quickComment: '',
+        replyingTo: null,
+        replyText: '',
         editingTaskAssignees: false,
         selectedTaskAssignees: [],
         taskAssigneeSearch: '',
         taskAssigneeResults: [],
+        editingTaskMain: false,
+        taskMainForm: { title:'', description:'' },
         editingTaskDates: false,
         taskDateForm: { start_date:'', due_date:'' },
         showInlineSubtaskForm: false,
@@ -863,6 +926,8 @@ function boardHub(spaceId, boardId) {
             dueSoon: false,
             overdue: false,
             onlyMe: false,
+            dateFrom: '',
+            dateTo: '',
         },
         filterMenus: [
             { key:'priority', options:[
@@ -906,6 +971,10 @@ function boardHub(spaceId, boardId) {
 
         async init() {
             this.filters.onlyMe = localStorage.getItem(`board:${this.boardId}:onlyMe`) === '1';
+            window.addEventListener('open-task-modal', event => {
+                const taskId = event.detail?.taskId;
+                if (taskId) this.openTaskModal(taskId);
+            });
             await this.refresh();
         },
 
@@ -954,6 +1023,8 @@ function boardHub(spaceId, boardId) {
             if (this.filters.status) params.set('status', this.filters.status);
             if (this.filters.dueSoon) params.set('due_soon', '1');
             if (this.filters.overdue) params.set('overdue', '1');
+            if (this.filters.dateFrom) params.set('due_date_from', this.filters.dateFrom);
+            if (this.filters.dateTo) params.set('due_date_to', this.filters.dateTo);
             if (this.filters.onlyMe && AUTH_USER?.id) params.set('assignee_id', AUTH_USER.id);
 
             const data = await api('GET', `/spaces/${this.spaceId}/tasks?${params.toString()}`);
@@ -1057,6 +1128,8 @@ function boardHub(spaceId, boardId) {
             if (this.filters.status) params.set('status', this.filters.status);
             if (this.filters.dueSoon) params.set('due_soon', '1');
             if (this.filters.overdue) params.set('overdue', '1');
+            if (this.filters.dateFrom) params.set('due_date_from', this.filters.dateFrom);
+            if (this.filters.dateTo) params.set('due_date_to', this.filters.dateTo);
             if (this.filters.onlyMe && AUTH_USER?.id) params.set('assignee_id', AUTH_USER.id);
             window.location.href = `/api/spaces/${this.spaceId}/tasks/export?${params.toString()}`;
         },
@@ -1076,7 +1149,10 @@ function boardHub(spaceId, boardId) {
             this.taskDetail = null;
             this.comments = [];
             this.quickComment = '';
+            this.replyingTo = null;
+            this.replyText = '';
             this.editingTaskAssignees = false;
+            this.editingTaskMain = false;
             this.editingTaskDates = false;
             this.showInlineSubtaskForm = false;
             this.showChecklistForm = false;
@@ -1104,7 +1180,10 @@ function boardHub(spaceId, boardId) {
             this.taskDetail = null;
             this.comments = [];
             this.quickComment = '';
+            this.replyingTo = null;
+            this.replyText = '';
             this.editingTaskAssignees = false;
+            this.editingTaskMain = false;
             this.editingTaskDates = false;
             this.showInlineSubtaskForm = false;
             this.showChecklistForm = false;
@@ -1117,6 +1196,30 @@ function boardHub(spaceId, boardId) {
 
         canEditSubtask(subtask) {
             return !!subtask && !!(subtask.can?.update || subtask.creator?.id === AUTH_USER?.id || (subtask.assignees || []).some(person => person.id === AUTH_USER?.id));
+        },
+
+        openTaskMainEditor() {
+            this.taskMainForm = {
+                title: this.taskDetail?.title || '',
+                description: this.taskDetail?.description || '',
+            };
+            this.editingTaskMain = true;
+        },
+
+        async saveTaskMain() {
+            if (!this.taskDetail?.id || !this.taskMainForm.title?.trim()) return;
+            try {
+                const updated = await api('PUT', `/tasks/${this.taskDetail.id}`, {
+                    title: this.taskMainForm.title,
+                    description: this.taskMainForm.description || null,
+                });
+                this.taskDetail.title = updated.title ?? this.taskMainForm.title;
+                this.taskDetail.description = updated.description ?? this.taskMainForm.description;
+                this.editingTaskMain = false;
+                await this.refresh();
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Tapşırıq yenilənmədi', type:'error' } }));
+            }
         },
 
         canToggleChecklistItem(task) {
@@ -1163,7 +1266,7 @@ function boardHub(spaceId, boardId) {
 
         scrollToApproval() {
             this.$nextTick(() => {
-                const panel = this.$refs.approvalPanel;
+                const panel = this.$refs.approvalPanelVisible || this.$refs.approvalPanel;
                 const body = this.$refs.taskModalBody;
 
                 if (!panel) return;
@@ -1393,12 +1496,44 @@ function boardHub(spaceId, boardId) {
             }
         },
 
+        flattenComments(items, depth = 0, output = []) {
+            (items || []).forEach(comment => {
+                output.push({ ...comment, _depth: Math.min(depth, 3) });
+                this.flattenComments(comment.replies || [], depth + 1, output);
+            });
+            return output;
+        },
+
+        startReply(comment) {
+            this.replyingTo = comment;
+            this.replyText = '';
+        },
+
+        cancelReply() {
+            this.replyingTo = null;
+            this.replyText = '';
+        },
+
         async submitTaskComment() {
             if (!this.quickComment.trim() || !this.taskDetail?.id) return;
             try {
                 const comment = await api('POST', `/tasks/${this.taskDetail.id}/comments`, { body: this.quickComment });
                 this.comments.push(comment);
                 this.quickComment = '';
+                await this.loadTaskComments();
+                await this.refresh();
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            }
+        },
+
+        async submitReply(comment) {
+            if (!this.replyText.trim() || !this.taskDetail?.id || !comment?.id) return;
+            try {
+                await api('POST', `/tasks/${this.taskDetail.id}/comments`, { body: this.replyText, parent_id: comment.id });
+                this.cancelReply();
+                await this.loadTaskComments();
+                await this.refresh();
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
             }

@@ -26,7 +26,8 @@ class SpacePolicy
         }
 
         $spaceRole = $employee->spaceRole($space);
-        return $spaceRole === 'senior_manager';
+        return $spaceRole === 'senior_manager'
+            || $employee->isSpaceManager($space);
     }
 
     /**
@@ -46,7 +47,8 @@ class SpacePolicy
             return true;
         }
 
-        return $employee->spaceRole($space) === 'senior_manager';
+        return $employee->spaceRole($space) === 'senior_manager'
+            || $employee->isSpaceManager($space);
     }
 
     /**

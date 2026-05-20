@@ -118,7 +118,7 @@ class Task extends Model
 
     public function comments(): HasMany
     {
-        return $this->hasMany(Comment::class)->whereNull('parent_id')->latest();
+        return $this->hasMany(Comment::class)->whereNull('parent_id')->oldest();
     }
 
     public function statusHistory(): HasMany

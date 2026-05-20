@@ -31,8 +31,13 @@ class CommentController extends Controller
     public function index(Task $task): JsonResponse
     {
         $comments = $task->comments()
-            ->with(['author', 'replies.author'])
-            ->latest()
+            ->with([
+                'author',
+                'replies.author',
+                'replies.replies.author',
+                'replies.replies.replies.author',
+            ])
+            ->oldest()
             ->get();
 
         return response()->json(CommentResource::collection($comments));
@@ -45,13 +50,22 @@ class CommentController extends Controller
             'parent_id' => 'nullable|exists:comments,id',
         ]);
 
-        $comment = $task->comments()->create([
+        if (!empty($data['parent_id'])) {
+            abort_unless(
+                Comment::where('id', $data['parent_id'])->where('task_id', $task->id)->exists(),
+                422,
+                'Cavab verilən şərh bu tapşırığa aid deyil.'
+            );
+        }
+
+        $comment = Comment::create([
+            'task_id'     => $task->id,
             'employee_id' => $request->user()->id,
             'body'        => $data['body'],
             'parent_id'   => $data['parent_id'] ?? null,
         ]);
 
-        $comment->load(['author', 'replies']);
+        $comment->load(['author', 'replies.author']);
         $this->notificationService->notifyCommentAdded($task, $request->user());
 
         return response()->json(new CommentResource($comment), 201);

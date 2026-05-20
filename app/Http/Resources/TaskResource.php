@@ -41,6 +41,7 @@ class TaskResource extends JsonResource
             'assignees'     => EmployeeResource::collection($this->whenLoaded('assignees')),
             'subtasks'      => TaskResource::collection($this->whenLoaded('subtasks')),
             'subtasks_count'=> $this->whenCounted('subtasks'),
+            'completed_subtasks_count' => $this->whenCounted('completed_subtasks'),
             'checklists'    => ChecklistResource::collection($this->whenLoaded('checklists')),
             'checklist_progress' => $this->when(
                 $this->relationLoaded('checklists'),

@@ -25,7 +25,12 @@ class TaskController extends Controller
             ->where('space_id', $space->id)
             ->whereNull('parent_task_id')
             ->with(['assignees', 'creator', 'assigner'])
-            ->withCount(['subtasks', 'attachments', 'comments']);
+            ->withCount([
+                'subtasks',
+                'attachments',
+                'comments',
+                'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
+            ]);
 
         if (!$request->filled('board_id')) {
             $query->forEmployee($request->user());
@@ -41,7 +46,13 @@ class TaskController extends Controller
         if ($request->filled('assignee_id')) {
             $assigneeId = $request->integer('assignee_id');
             $query->where(function ($query) use ($assigneeId) {
-                $query->where('created_by', $assigneeId)
+                $query->where(function ($query) use ($assigneeId) {
+                    $query->where('created_by', $assigneeId)
+                        ->where(function ($query) use ($assigneeId) {
+                            $query->whereNull('assigned_by')
+                                ->orWhere('assigned_by', $assigneeId);
+                        });
+                })
                     ->orWhere('assigned_by', $assigneeId)
                     ->orWhereHas('assignees', fn($q) => $q->where('employees.id', $assigneeId))
                     ->orWhereHas('subtasks', fn($q) => $q->where('assigned_by', $assigneeId))
@@ -95,7 +106,12 @@ class TaskController extends Controller
             ->where('space_id', $space->id)
             ->whereNull('parent_task_id')
             ->with(['board', 'assignees', 'creator', 'assigner', 'subtasks', 'checklists'])
-            ->withCount(['subtasks', 'attachments', 'comments'])
+            ->withCount([
+                'subtasks',
+                'attachments',
+                'comments',
+                'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
+            ])
             ->forEmployee($request->user());
 
         if ($request->filled('status')) {
@@ -107,7 +123,13 @@ class TaskController extends Controller
         if ($request->filled('assignee_id')) {
             $assigneeId = $request->integer('assignee_id');
             $query->where(function ($query) use ($assigneeId) {
-                $query->where('created_by', $assigneeId)
+                $query->where(function ($query) use ($assigneeId) {
+                    $query->where('created_by', $assigneeId)
+                        ->where(function ($query) use ($assigneeId) {
+                            $query->whereNull('assigned_by')
+                                ->orWhere('assigned_by', $assigneeId);
+                        });
+                })
                     ->orWhere('assigned_by', $assigneeId)
                     ->orWhereHas('assignees', fn($q) => $q->where('employees.id', $assigneeId))
                     ->orWhereHas('subtasks', fn($q) => $q->where('assigned_by', $assigneeId))
@@ -222,7 +244,12 @@ class TaskController extends Controller
             'subtasks.creator', 'subtasks.assignees', 'checklists.completedBy',
             'attachments.uploader', 'comments.author', 'comments.replies.author',
             'statusHistory.changedBy',
-        ])->loadCount(['subtasks', 'attachments', 'comments']);
+        ])->loadCount([
+            'subtasks',
+            'attachments',
+            'comments',
+            'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
+        ]);
 
         return response()->json(new TaskResource($task));
     }

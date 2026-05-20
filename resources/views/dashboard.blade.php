@@ -655,6 +655,10 @@ function dashboard() {
         ],
 
         async init() {
+            window.addEventListener('open-task-modal', event => {
+                const taskId = event.detail?.taskId;
+                if (taskId) this.openTaskModal(taskId);
+            });
             await this.loadTasks();
         },
 

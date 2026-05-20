@@ -21,7 +21,15 @@ public function index(Request $request, Space $space): JsonResponse
         ->when(!$request->boolean('archived'), fn ($query) => $query->whereNull('archived_at'))
         ->when($request->boolean('archived'), fn ($query) => $query->whereNotNull('archived_at'))
         ->with([
-            'tasks.assignees',
+            'tasks' => fn ($query) => $query
+                ->whereNull('parent_task_id')
+                ->with('assignees')
+                ->withCount([
+                    'subtasks',
+                    'attachments',
+                    'comments',
+                    'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
+                ]),
             'creator',
         ])
         ->withCount([
@@ -124,6 +132,12 @@ public function index(Request $request, Space $space): JsonResponse
             'tasks' => function ($q) use ($request) {
                 $q->whereNull('parent_task_id')
                     ->with(['assignees'])
+                    ->withCount([
+                        'subtasks',
+                        'attachments',
+                        'comments',
+                        'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
+                    ])
                     ->forEmployee($request->user())
                     ->orderBy('board_position');
             },
