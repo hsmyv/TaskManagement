@@ -289,7 +289,7 @@
                                                         <div class="mt-1 flex items-center gap-3 text-[11px] text-white/45">
                                                             <span x-text="`Şərh ${t.comments_count ?? 0}`"></span>
                                                             <span x-text="`Fayl ${t.attachments_count ?? 0}`"></span>
-                                                            <span x-text="`Alt ${t.completed_subtasks_count ?? 0}/${t.subtasks_count ?? ((t.subtasks || []).length)}`"></span>
+                                                            <span x-text="`Alt tapşırıq ${t.completed_subtasks_count ?? 0}/${t.subtasks_count ?? ((t.subtasks || []).length)}`"></span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -434,6 +434,48 @@
                         </template>
                     </div>
                 </div>
+
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <label class="block text-sm font-medium text-white/80">Alt tapşırıqlar</label>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_150px_auto] gap-2">
+                        <input type="text" x-model="newTaskSubtaskDraft.title" placeholder="Alt tapşırıq adı" class="h-11 rounded-xl px-4 tis-input">
+                        <input type="date" x-model="newTaskSubtaskDraft.due_date" class="h-11 rounded-xl px-4 tis-input">
+                        <button type="button" @click="addNewTaskSubtask()" class="px-4 rounded-xl bg-white/10 hover:bg-white/15 text-sm">Əlavə et</button>
+                    </div>
+                    <div class="space-y-2">
+                        <input type="text" x-model="newTaskSubtaskAssigneeSearch" @input.debounce.300ms="searchNewTaskSubtaskAssignees()" placeholder="Alt tapşırığın məsul şəxsi..." class="w-full h-11 rounded-xl px-4 tis-input">
+                        <div class="flex flex-wrap gap-2" x-show="newTaskSubtaskAssignees.length">
+                            <template x-for="emp in newTaskSubtaskAssignees" :key="`draft-sub-assignee-${emp.id}`">
+                                <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10">
+                                    <img :src="emp.avatar_url || defaultAvatar" class="w-4 h-4 rounded-full object-cover">
+                                    <span x-text="emp.full_name"></span>
+                                    <button type="button" @click="removeNewTaskSubtaskAssignee(emp.id)" class="hover:text-red-300">x</button>
+                                </span>
+                            </template>
+                        </div>
+                        <div x-show="newTaskSubtaskAssigneeResults.length" class="relative z-10 bg-[#1d315f] border border-white/10 rounded-2xl shadow-2xl max-h-40 overflow-y-auto tis-modal-scroll">
+                            <template x-for="emp in newTaskSubtaskAssigneeResults" :key="`draft-sub-result-${emp.id}`">
+                                <button type="button" @click="selectNewTaskSubtaskAssignee(emp)" class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 text-left text-sm">
+                                    <img :src="emp.avatar_url || defaultAvatar" class="w-7 h-7 rounded-full object-cover">
+                                    <div><p class="font-medium text-white" x-text="emp.full_name"></p><p class="text-xs text-white/45" x-text="emp.position || emp.email || ''"></p></div>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="space-y-2" x-show="newTaskSubtasks.length">
+                        <template x-for="(sub, index) in newTaskSubtasks" :key="`new-task-sub-${index}`">
+                            <div class="flex items-center justify-between gap-3 rounded-xl bg-white/8 border border-white/10 px-3 py-2">
+                                <div class="min-w-0">
+                                    <p class="text-sm truncate" x-text="sub.title"></p>
+                                    <p class="text-[11px] text-white/45" x-text="`${sub.due_date ? formatDate(sub.due_date) : 'Son tarix yoxdur'} · ${(sub.assignees || []).map(p => p.full_name).join(', ') || 'Məsul şəxs yoxdur'}`"></p>
+                                </div>
+                                <button type="button" @click="removeNewTaskSubtask(index)" class="text-xs text-white/45 hover:text-red-300">Sil</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
                 <div class="flex items-center justify-end gap-3 pt-2">
                     <button type="button" @click="showCreateModal=false" class="px-5 py-2.5 text-sm bg-white/8 hover:bg-white/12 rounded-xl">Ləğv et</button>
                     <button type="submit" :disabled="creating" class="px-5 py-2.5 text-sm font-medium bg-[#6d44c5] hover:bg-[#613db1] rounded-xl disabled:opacity-60">
@@ -559,7 +601,7 @@
                         <div class="space-y-3 overflow-y-auto flex-1 pr-1 tis-modal-scroll">
                             <template x-if="commentsLoading"><div class="text-sm text-white/45">Şərhlər yüklənir...</div></template>
                             <template x-for="comment in flattenComments(comments)" :key="`comment-new-${comment.id}`">
-                                <div class="flex gap-3" :style="`margin-left: ${comment._depth * 18}px`">
+                                <div class="flex gap-3" :style="`margin-left: ${Math.min(comment._depth, 6) * 18}px`">
                                     <img :src="comment.author?.avatar_url || defaultAvatar" class="w-8 h-8 rounded-full object-cover mt-1">
                                     <div class="flex-1 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
                                         <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -569,7 +611,7 @@
                                         <p class="text-sm text-white/75 whitespace-pre-wrap" x-text="comment.body || comment.content || ''"></p>
                                         <div class="mt-2 flex items-center gap-3">
                                             <button type="button" @click="startReply(comment)" class="text-[11px] text-white/45 hover:text-white">Cavabla</button>
-                                            <span x-show="comment._depth >= 3 && (comment.replies || []).length" class="text-[11px] text-white/35">Daha çox cavab var</span>
+                                            <button type="button" x-show="comment._replyCount" @click="toggleCommentReplies(comment)" class="text-[11px] text-white/45 hover:text-white" x-text="expandedComments[comment.id] ? 'Cavabları gizlət' : `${comment._replyCount} cavabı göstər`"></button>
                                         </div>
                                         <div x-show="replyingTo?.id === comment.id" class="mt-3 space-y-2">
                                             <textarea x-model="replyText" rows="2" class="w-full rounded-xl px-3 py-2 bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none" placeholder="Cavab yazın"></textarea>
@@ -900,6 +942,7 @@ function boardHub(spaceId, boardId) {
         quickComment: '',
         replyingTo: null,
         replyText: '',
+        expandedComments: {},
         editingTaskAssignees: false,
         selectedTaskAssignees: [],
         taskAssigneeSearch: '',
@@ -917,6 +960,11 @@ function boardHub(spaceId, boardId) {
         draggedTask: null,
         statusUpdating: false,
         newTask: { title:'', description:'', priority:'medium', visibility:'all_members', start_date:'', due_date:'', assignee_ids:[], assigned_by_id: null },
+        newTaskSubtaskDraft: { title:'', due_date:'' },
+        newTaskSubtasks: [],
+        newTaskSubtaskAssigneeSearch: '',
+        newTaskSubtaskAssigneeResults: [],
+        newTaskSubtaskAssignees: [],
         approvingTask: false,
         cancelingTask: false,
         defaultAvatar: 'https://ui-avatars.com/api/?name=User&background=1f3b75&color=fff',
@@ -1103,15 +1151,85 @@ function boardHub(spaceId, boardId) {
                 assignee_ids: [],
                 assigned_by_id: null,
             };
+            this.newTaskSubtaskDraft = { title:'', due_date:'' };
+            this.newTaskSubtasks = [];
+            this.newTaskSubtaskAssigneeSearch = '';
+            this.newTaskSubtaskAssigneeResults = [];
+            this.newTaskSubtaskAssignees = [];
             this.showCreateModal = true;
+        },
+
+        addNewTaskSubtask() {
+            const title = (this.newTaskSubtaskDraft.title || '').trim();
+            if (!title) return;
+            this.newTaskSubtasks.push({
+                title,
+                due_date: this.newTaskSubtaskDraft.due_date || '',
+                assignee_ids: this.newTaskSubtaskAssignees.map(person => person.id),
+                assignees: [...this.newTaskSubtaskAssignees],
+            });
+            this.newTaskSubtaskDraft = { title:'', due_date:'' };
+            this.newTaskSubtaskAssigneeSearch = '';
+            this.newTaskSubtaskAssigneeResults = [];
+            this.newTaskSubtaskAssignees = [];
+        },
+
+        removeNewTaskSubtask(index) {
+            this.newTaskSubtasks.splice(index, 1);
+        },
+
+        async searchNewTaskSubtaskAssignees() {
+            if ((this.newTaskSubtaskAssigneeSearch || '').length < 1) {
+                this.newTaskSubtaskAssigneeResults = [];
+                return;
+            }
+            try {
+                const data = await api('GET', `/employees/search?q=${encodeURIComponent(this.newTaskSubtaskAssigneeSearch)}&space_id=${this.spaceId}`);
+                const arr = Array.isArray(data) ? data : (data?.data || []);
+                const selectedIds = this.newTaskSubtaskAssignees.map(person => person.id);
+                this.newTaskSubtaskAssigneeResults = arr.filter(person => !selectedIds.includes(person.id));
+            } catch(e) {
+                this.newTaskSubtaskAssigneeResults = [];
+            }
+        },
+
+        selectNewTaskSubtaskAssignee(emp) {
+            if (!this.newTaskSubtaskAssignees.find(person => person.id === emp.id)) {
+                this.newTaskSubtaskAssignees.push(emp);
+            }
+            this.newTaskSubtaskAssigneeSearch = '';
+            this.newTaskSubtaskAssigneeResults = [];
+        },
+
+        removeNewTaskSubtaskAssignee(id) {
+            this.newTaskSubtaskAssignees = this.newTaskSubtaskAssignees.filter(person => person.id !== id);
+        },
+
+        async createDraftSubtasks(parentTaskId, subtasks) {
+            for (const subtask of subtasks) {
+                await api('POST', `/tasks/${parentTaskId}/subtasks`, {
+                    title: subtask.title,
+                    due_date: subtask.due_date || null,
+                    assignee_ids: subtask.assignee_ids || [],
+                });
+            }
         },
 
         async createTask() {
             if (!this.newTask.title?.trim()) return;
             this.creating = true;
             try {
-                await api('POST', `/boards/${this.boardId}/tasks`, this.newTask);
+                this.addNewTaskSubtask();
+                const subtasks = [...this.newTaskSubtasks];
+                const response = await api('POST', `/boards/${this.boardId}/tasks`, this.newTask);
+                const created = response?.data || response;
+                if (created?.id && subtasks.length) await this.createDraftSubtasks(created.id, subtasks);
                 this.showCreateModal = false;
+                this.newTaskSubtaskDraft = { title:'', due_date:'' };
+                this.newTaskSubtasks = [];
+                this.newTaskSubtaskAssigneeSearch = '';
+                this.newTaskSubtaskAssigneeResults = [];
+                this.newTaskSubtaskAssignees = [];
                 await this.refresh();
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Tapşırıq yaradıldı', type:'success' } }));
             } catch(e) {
@@ -1151,6 +1269,7 @@ function boardHub(spaceId, boardId) {
             this.quickComment = '';
             this.replyingTo = null;
             this.replyText = '';
+            this.expandedComments = {};
             this.editingTaskAssignees = false;
             this.editingTaskMain = false;
             this.editingTaskDates = false;
@@ -1182,6 +1301,7 @@ function boardHub(spaceId, boardId) {
             this.quickComment = '';
             this.replyingTo = null;
             this.replyText = '';
+            this.expandedComments = {};
             this.editingTaskAssignees = false;
             this.editingTaskMain = false;
             this.editingTaskDates = false;
@@ -1498,10 +1618,24 @@ function boardHub(spaceId, boardId) {
 
         flattenComments(items, depth = 0, output = []) {
             (items || []).forEach(comment => {
-                output.push({ ...comment, _depth: Math.min(depth, 3) });
-                this.flattenComments(comment.replies || [], depth + 1, output);
+                const replyCount = this.replyCount(comment);
+                output.push({ ...comment, _depth: depth, _replyCount: replyCount });
+                if (replyCount && this.expandedComments[comment.id]) {
+                    this.flattenComments(comment.replies || [], depth + 1, output);
+                }
             });
             return output;
+        },
+
+        replyCount(comment) {
+            return (comment.replies || []).reduce((total, reply) => total + 1 + this.replyCount(reply), 0);
+        },
+
+        toggleCommentReplies(comment) {
+            this.expandedComments = {
+                ...this.expandedComments,
+                [comment.id]: !this.expandedComments[comment.id],
+            };
         },
 
         startReply(comment) {
@@ -1531,6 +1665,7 @@ function boardHub(spaceId, boardId) {
             if (!this.replyText.trim() || !this.taskDetail?.id || !comment?.id) return;
             try {
                 await api('POST', `/tasks/${this.taskDetail.id}/comments`, { body: this.replyText, parent_id: comment.id });
+                this.expandedComments = { ...this.expandedComments, [comment.id]: true };
                 this.cancelReply();
                 await this.loadTaskComments();
                 await this.refresh();

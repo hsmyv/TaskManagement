@@ -76,7 +76,7 @@ class TaskService
             if (isset($data['due_date'])) {
                 $task->loadMissing('board');
                 if ($task->board?->deadline && $data['due_date'] > $task->board->deadline->toDateString()) {
-                    abort(422, 'Tapşırığın son tarixi board deadline tarixindən sonra ola bilməz.');
+                    abort(422, 'Tapşırığın son tarixi layihənin son icra tarixindən sonra ola bilməz.');
                 }
             }
 

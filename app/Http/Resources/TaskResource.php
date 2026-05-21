@@ -49,7 +49,7 @@ class TaskResource extends JsonResource
             ),
             'attachments'      => AttachmentResource::collection($this->whenLoaded('attachments')),
             'attachments_count'=> $this->whenCounted('attachments'),
-            'comments_count'   => $this->whenCounted('comments'),
+            'comments_count'   => (int) ($this->comments_count ?? 0),
             'status_history'   => StatusHistoryResource::collection($this->whenLoaded('statusHistory')),
 
             // İcazələr

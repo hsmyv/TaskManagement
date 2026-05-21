@@ -121,6 +121,11 @@ class Task extends Model
         return $this->hasMany(Comment::class)->whereNull('parent_id')->oldest();
     }
 
+    public function allComments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
     public function statusHistory(): HasMany
     {
         return $this->hasMany(StatusHistory::class)->latest('changed_at');

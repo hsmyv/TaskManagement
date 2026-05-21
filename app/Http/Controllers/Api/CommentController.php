@@ -30,17 +30,29 @@ class CommentController extends Controller
 
     public function index(Task $task): JsonResponse
     {
-        $comments = $task->comments()
-            ->with([
-                'author',
-                'replies.author',
-                'replies.replies.author',
-                'replies.replies.replies.author',
-            ])
+        $comments = Comment::query()
+            ->where('task_id', $task->id)
+            ->with('author')
             ->oldest()
             ->get();
 
-        return response()->json(CommentResource::collection($comments));
+        $grouped = $comments->groupBy('parent_id');
+
+        $attachReplies = function (Comment $comment) use (&$attachReplies, $grouped): Comment {
+            $replies = ($grouped->get($comment->id) ?? collect())
+                ->values()
+                ->map(fn (Comment $reply) => $attachReplies($reply));
+
+            $comment->setRelation('replies', $replies);
+
+            return $comment;
+        };
+
+        $tree = ($grouped->get('') ?? $grouped->get(null) ?? collect())
+            ->values()
+            ->map(fn (Comment $comment) => $attachReplies($comment));
+
+        return response()->json(CommentResource::collection($tree));
     }
 
     public function store(Request $request, Task $task): JsonResponse

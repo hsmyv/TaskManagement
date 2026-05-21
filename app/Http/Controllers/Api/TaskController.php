@@ -28,7 +28,7 @@ class TaskController extends Controller
             ->withCount([
                 'subtasks',
                 'attachments',
-                'comments',
+                'allComments as comments_count',
                 'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
             ]);
 
@@ -109,7 +109,7 @@ class TaskController extends Controller
             ->withCount([
                 'subtasks',
                 'attachments',
-                'comments',
+                'allComments as comments_count',
                 'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
             ])
             ->forEmployee($request->user());
@@ -247,7 +247,7 @@ class TaskController extends Controller
         ])->loadCount([
             'subtasks',
             'attachments',
-            'comments',
+            'allComments as comments_count',
             'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
         ]);
 
@@ -358,7 +358,7 @@ class TaskController extends Controller
     {
         $subtasks = $task->subtasks()
             ->with(['assignees', 'creator'])
-            ->withCount(['attachments', 'comments'])
+            ->withCount(['attachments', 'allComments as comments_count'])
             ->get();
 
         return response()->json(TaskResource::collection($subtasks));

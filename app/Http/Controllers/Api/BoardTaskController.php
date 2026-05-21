@@ -41,7 +41,7 @@ class BoardTaskController extends Controller
         ]);
 
         if (!empty($validated['due_date']) && $board->deadline && $validated['due_date'] > $board->deadline->toDateString()) {
-            return response()->json(['message' => 'Tapşırığın son tarixi board deadline tarixindən sonra ola bilməz.'], 422);
+            return response()->json(['message' => 'Tapşırığın son tarixi layihənin son icra tarixindən sonra ola bilməz.'], 422);
         }
 
         $pos = (int) (Task::where('board_id', $board->id)->max('board_position') ?? 0) + 1;

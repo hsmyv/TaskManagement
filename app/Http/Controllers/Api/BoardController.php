@@ -27,7 +27,7 @@ public function index(Request $request, Space $space): JsonResponse
                 ->withCount([
                     'subtasks',
                     'attachments',
-                    'comments',
+                    'allComments as comments_count',
                     'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
                 ]),
             'creator',
@@ -135,7 +135,7 @@ public function index(Request $request, Space $space): JsonResponse
                     ->withCount([
                         'subtasks',
                         'attachments',
-                        'comments',
+                        'allComments as comments_count',
                         'subtasks as completed_subtasks_count' => fn ($query) => $query->where('status', 'completed'),
                     ])
                     ->forEmployee($request->user())

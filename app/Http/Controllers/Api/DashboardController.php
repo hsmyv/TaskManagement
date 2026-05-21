@@ -62,7 +62,7 @@ class DashboardController extends Controller
 
         $taskQuery = Task::query()
             ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
-            ->withCount(['subtasks', 'attachments', 'comments'])
+            ->withCount(['subtasks', 'attachments', 'allComments as comments_count'])
             ->whereNull('parent_task_id')
             ->forEmployee($employee);
 
