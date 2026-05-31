@@ -173,7 +173,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
                         <template x-if="boardsLoading">
-                            <div class="xl:col-span-4 rounded-[24px] bg-gradient-to-br from-[#3059a5] to-[#207d92] p-6 text-white shadow-tis">Boardlar yüklənir...</div>
+                            <div class="xl:col-span-4 rounded-[24px] bg-gradient-to-br from-[#3059a5] to-[#207d92] p-6 text-white shadow-tis">Layihələr yüklənir...</div>
                         </template>
 
                         <template x-for="b in boards" :key="b.id">

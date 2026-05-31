@@ -5,194 +5,118 @@
 @section('content')
 <div class="min-h-[calc(100vh-74px)] bg-gradient-to-br from-[#132e69] via-[#1d2f67] to-[#39245f] px-3 sm:px-5 lg:px-8 py-5 text-white" x-data="dashboard()" x-init="init()">
     <section class="max-w-7xl mx-auto space-y-7">
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-            <template x-if="spacesLoading">
-                <div class="sm:col-span-2 xl:col-span-4 rounded-[20px] bg-white/10 border border-white/10 px-5 py-6 text-white/70">Departamentlər yüklənir...</div>
-            </template>
+        <style>
+            .dashboard-scroll {
+                scrollbar-width: thin;
+                scrollbar-color: rgba(147, 178, 231, .7) rgba(10, 27, 65, .18);
+            }
+            .dashboard-scroll::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
+            }
+            .dashboard-scroll::-webkit-scrollbar-track {
+                background: rgba(10, 27, 65, .18);
+                border-radius: 999px;
+            }
+            .dashboard-scroll::-webkit-scrollbar-thumb {
+                background: linear-gradient(180deg, rgba(134, 171, 232, .9), rgba(29, 94, 170, .9));
+                border-radius: 999px;
+            }
+        </style>
 
-            <template x-for="space in spaces" :key="space.id">
-                <a :href="`/spaces/${space.id}`" class="block rounded-[10px] bg-[#2d5baa] hover:bg-[#3264b8] transition-all shadow-[0_16px_40px_rgba(5,14,45,0.22)] overflow-hidden">
-                    <div class="min-h-[72px] px-5 py-4 flex items-center justify-center text-center">
-                        <h2 class="text-[15px] leading-5 font-medium" x-text="space.name"></h2>
-                    </div>
-                    <div class="mx-2 mb-2 rounded-[6px] bg-white/16 px-4 py-3 grid grid-cols-2 gap-3 text-[11px]">
-                        <div class="flex items-center gap-2">
-                            <span class="w-5 h-5 rounded-full bg-[#1b427d] inline-flex items-center justify-center text-[10px] font-semibold" x-text="space.boards_count || 0"></span>
-                            <span>Layihələr</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-5 h-5 rounded-full bg-[#8d65ff] inline-flex items-center justify-center text-[10px] font-semibold" x-text="space.members_count || 0"></span>
-                            <span>Üzvlər</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-5 h-5 rounded-full bg-[#1d63bd] inline-flex items-center justify-center text-[10px] font-semibold" x-text="space.tasks_count || 0"></span>
-                            <span>Tapşırıqlar</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-5 h-5 rounded-full bg-[#e5536c] inline-flex items-center justify-center text-[10px] font-semibold" x-text="space.overdue_count || 0"></span>
-                            <span>Gecikmiş tapşırıqlar</span>
-                        </div>
-                    </div>
-                </a>
-            </template>
-        </div>
-
-        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-            <div class="flex flex-wrap items-center gap-2">
-                <select x-model="filters.priority" @change="loadTasks()" class="h-9 rounded-[5px] border border-white/60 bg-[#1d2d62]/70 px-3 text-sm text-white focus:outline-none">
-                    <option value="">Bütün prioritetlər</option>
-                    <option value="low">Aşağı</option>
-                    <option value="medium">Orta</option>
-                    <option value="high">Yüksək</option>
-                    <option value="urgent">Təcili</option>
-                </select>
-
-                <select x-model="filters.status" @change="loadTasks()" class="h-9 rounded-[5px] border border-white/60 bg-[#1d2d62]/70 px-3 text-sm text-white focus:outline-none">
-                    <option value="">Bütün statuslar</option>
-                    <template x-for="s in statusSections" :key="`filter-${s.key}`">
-                        <option :value="s.key" x-text="s.label"></option>
-                    </template>
-                </select>
-
-                <select x-model="filters.due_days" @change="loadTasks()" class="h-9 rounded-[5px] border border-white/25 bg-[#1d2d62]/70 px-3 text-sm text-white focus:outline-none">
-                    <option value="">Bütün tarixlər</option>
-                    <option value="7">Son 7 gün</option>
-                    <option value="14">Son 14 gün</option>
-                    <option value="30">Son 30 gün</option>
-                </select>
-
-                <label class="h-9 rounded-[5px] border border-white/25 bg-[#1d2d62]/70 px-3 text-sm text-red-400 flex items-center gap-2">
-                    <span>Gecikmiş</span>
-                    <input type="checkbox" x-model="filters.overdue" @change="loadTasks()" class="rounded">
-                </label>
-
-                <input type="search" x-model.debounce.400ms="filters.q" @input.debounce.400ms="loadTasks()" placeholder="Axtar..." class="h-9 w-48 rounded-[5px] border border-white/25 bg-[#1d2d62]/70 px-3 text-sm text-white placeholder:text-white/45 focus:outline-none">
+        <div class="overflow-hidden rounded-[18px] border border-white/10 bg-[#102756]/85 shadow-[0_24px_80px_rgba(5,14,45,0.34)]">
+            <div class="min-h-[62px] bg-[#0d244f] px-5 sm:px-7 py-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-semibold">İdarə heyəti</h1>
+                    <p class="text-sm text-white/55 mt-1">Tapşırıqlar, departamentlər və ümumi performans eyni paneldə.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button @click="openCreateTask()" class="h-10 px-4 rounded-[7px] border border-white/35 bg-[#0b2448] hover:bg-[#12305b] flex items-center gap-2 text-sm shadow-lg shadow-black/10">
+                        <span class="text-2xl leading-none -mt-0.5">+</span>
+                        <span>Tapşırıq</span>
+                    </button>
+                    <a href="{{ route('dashboard.statistics') }}" class="h-10 px-4 rounded-[7px] border border-white/25 bg-white/10 hover:bg-white/15 text-sm font-medium inline-flex items-center">
+                        Statistika
+                    </a>
+                </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-6 xl:justify-end">
-                <button @click="openCreateTask()" class="h-9 px-5 rounded-[5px] border border-white/70 bg-[#102a52] hover:bg-[#153462] flex items-center gap-2 text-lg leading-none">
-                    <span class="text-3xl leading-none -mt-0.5">+</span>
-                    <span class="text-base">Tapşırıq</span>
-                </button>
-
-                <select x-model="filters.space_id" @change="loadTasks()" class="h-9 rounded-[5px] border border-white/35 bg-[#2d5baa] px-3 text-sm text-white focus:outline-none min-w-[150px]">
-                    <option value="">Department</option>
-                    <template x-for="space in spaces" :key="`department-${space.id}`">
-                        <option :value="space.id" x-text="space.name"></option>
-                    </template>
-                </select>
-            </div>
-        </div>
-
-        <div class="space-y-5">
-            <template x-if="tasksLoading">
-                <div class="rounded-[10px] bg-[#213b78]/90 border border-white/10 px-5 py-8 text-white/70">Tapşırıqlar yüklənir...</div>
-            </template>
-
-            <template x-for="s in visibleStatusSections()" :key="s.key">
-                <section class="rounded-[10px] overflow-hidden bg-[#213b78]/95 shadow-[0_16px_40px_rgba(5,14,45,0.2)] border border-white/8">
-                    <div class="px-4 sm:px-5 pt-4 pb-2 flex items-center justify-between">
-                        <div class="flex items-center gap-2 text-xl font-medium" :class="statusTextClass(s.key)">
-                            <span class="w-3.5 h-3.5 rounded-full" :class="statusDotClass(s.key)"></span>
-                            <span x-text="s.label"></span>
-                        </div>
-                        <span class="text-sm text-white/55" x-text="`${(groupedTasks[s.key] || []).length} tapşırıq`"></span>
+            <div class="grid grid-cols-12 min-h-[560px] bg-[#aaa7b6]">
+                <aside class="col-span-12 lg:col-span-3 xl:col-span-3 bg-[#355188] px-5 py-6 text-white">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <h2 class="text-[22px] font-medium">Tapşırıqlar</h2>
+                        <button @click="openCreateTask()" class="w-9 h-9 rounded-[7px] bg-[#0d244f] hover:bg-[#163464] border border-white/10 text-3xl leading-none flex items-center justify-center pb-1">+</button>
                     </div>
 
-                    <div class="px-4 sm:px-5 pb-5 overflow-x-auto">
-                        <div class="min-w-[940px]">
-                            <div class="grid grid-cols-[2.3fr_1.5fr_1.35fr_1.35fr_1fr_0.9fr_1fr] gap-4 text-white/42 text-xs px-1 py-2 border-b border-white/14">
-                                <div>Ad</div>
-                                <div>Layihə</div>
-                                <div>Təyinatçı</div>
-                                <div>Təyin edən</div>
-                                <div>Son tarix</div>
-                                <div>Prioritet</div>
-                                <div>İrəliləyiş</div>
-                            </div>
-
-                            <template x-if="!tasksLoading && (groupedTasks[s.key] || []).length === 0">
-                                <div class="px-1 py-5 text-sm text-white/50">Tapşırıq yoxdur</div>
-                            </template>
-
-                            <template x-for="task in (groupedTasks[s.key] || [])" :key="task.id">
-                                <button type="button" @click="openTaskModal(task.id)" class="w-full text-left grid grid-cols-[2.3fr_1.5fr_1.35fr_1.35fr_1fr_0.9fr_1fr] gap-4 px-1 py-3 border-b border-white/12 hover:bg-white/5 transition-all items-center text-xs">
-                                    <div class="min-w-0 flex items-center gap-2">
-                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="statusDotClass(task.status)"></span>
-                                        <span class="truncate" x-text="task.title"></span>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <p class="truncate" x-text="task.board?.name || task.space?.name || '...'"></p>
-                                        <p class="text-[10px] text-white/40 truncate" x-text="task.space?.department?.name || ''"></p>
-                                    </div>
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <template x-if="(task.assignees || []).length === 1">
-                                            <div class="flex items-center gap-2 min-w-0">
-                                                <img :src="task.assignees[0]?.avatar_url || '{{ auth()->user()->avatar_url }}'" class="w-6 h-6 rounded-full object-cover ring-1 ring-white/20">
-                                                <span class="truncate" x-text="task.assignees[0]?.full_name || '-'"></span>
-                                            </div>
-                                        </template>
-                                        <template x-if="(task.assignees || []).length > 1">
-                                            <div class="flex -space-x-2">
-                                                <template x-for="person in task.assignees" :key="`assignee-${task.id}-${person.id}`">
-                                                    <img :src="person.avatar_url" :title="person.full_name" class="w-6 h-6 rounded-full object-cover ring-1 ring-[#213b78]">
-                                                </template>
-                                            </div>
-                                        </template>
-                                        <span x-show="!(task.assignees || []).length">-</span>
-                                    </div>
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <img :src="task.assigner?.avatar_url || task.creator?.avatar_url || '{{ auth()->user()->avatar_url }}'" class="w-6 h-6 rounded-full object-cover ring-1 ring-white/20">
-                                        <span class="truncate" x-text="task.assigner?.full_name || task.creator?.full_name || '-'"></span>
-                                    </div>
-                                    <div x-text="task.due_date ? formatDate(task.due_date) : '-'"></div>
-                                    <div x-text="priorityLabel(task.priority) || 'Orta'"></div>
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-2 w-full rounded-full bg-[#17305f] overflow-hidden">
-                                            <div class="h-2 rounded-full" :class="taskProgress(task) === 100 ? 'bg-[#00c83a]' : 'bg-[#33b95a]'" :style="`width:${taskProgress(task)}%`"></div>
-                                        </div>
-                                        <span class="text-white/80" x-text="`${taskProgress(task)}%`"></span>
-                                    </div>
-                                </button>
-                            </template>
+                    <div class="space-y-2 mb-4">
+                        <input type="search" x-model.debounce.400ms="filters.q" @input.debounce.400ms="loadTasks()" placeholder="Tapşırıq və layihə axtar..." class="w-full h-10 rounded-[7px] border border-white/15 bg-[#203d75] px-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-white/35">
+                        <div class="grid grid-cols-2 gap-2">
+                            <select x-model="filters.status" @change="loadTasks()" class="h-10 rounded-[7px] border border-white/15 bg-[#203d75] px-2 text-xs text-white focus:outline-none">
+                                <option value="">Bütün statuslar</option>
+                                <template x-for="s in statusSections" :key="'filter-status-' + s.key">
+                                    <option :value="s.key" x-text="s.label"></option>
+                                </template>
+                            </select>
+                            <select x-model="filters.priority" @change="loadTasks()" class="h-10 rounded-[7px] border border-white/15 bg-[#203d75] px-2 text-xs text-white focus:outline-none">
+                                <option value="">Bütün prioritetlər</option>
+                                <option value="low">Aşağı</option>
+                                <option value="medium">Orta</option>
+                                <option value="high">Yüksək</option>
+                                <option value="urgent">Təcili</option>
+                            </select>
                         </div>
+                    </div>
+
+                    <div class="dashboard-scroll max-h-[430px] overflow-y-auto pr-1 space-y-3">
+                        <template x-if="tasksLoading">
+                            <div class="rounded-[12px] bg-[#1d376d] px-4 py-4 text-sm text-white/65">Tapşırıqlar yüklənir...</div>
+                        </template>
+                        <template x-if="!tasksLoading && sidebarTasks().length === 0">
+                            <div class="rounded-[12px] bg-[#1d376d] px-4 py-4 text-sm text-white/65">Tapşırıq yoxdur</div>
+                        </template>
+                        <template x-for="task in sidebarTasks()" :key="'side-task-' + task.id">
+                            <button type="button" @click="openTaskModal(task.id)" class="w-full rounded-[12px] bg-[#1d376d] hover:bg-[#254780] px-3 py-3 text-left shadow-[0_12px_26px_rgba(4,16,45,0.18)] transition">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-[13px] truncate" :title="task.title" x-text="task.title"></p>
+                                        <p class="text-[10px] text-white/45 mt-1 truncate" x-text="task.board?.name || task.space?.name || ''"></p>
+                                    </div>
+                                    <div class="flex -space-x-2 shrink-0">
+                                        <template x-for="person in (task.assignees || []).slice(0, 2)" :key="'side-assignee-' + task.id + '-' + person.id">
+                                            <img :src="person.avatar_url" :title="person.full_name" class="w-8 h-8 rounded-full object-cover ring-2 ring-[#1d376d]">
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex items-center gap-2">
+                                    <div class="h-2 flex-1 rounded-full bg-[#102755] overflow-hidden">
+                                        <div class="h-2 rounded-full" :class="taskProgress(task) >= 80 ? 'bg-[#38c66a]' : 'bg-[#c9782c]'" :style="'width:' + taskProgress(task) + '%'"></div>
+                                    </div>
+                                    <span class="text-[10px] text-white/70 min-w-[34px]" x-text="taskProgress(task) + '%'"></span>
+                                    <span class="text-[10px] text-white/65" x-text="task.due_date ? formatDate(task.due_date) : '-'"></span>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+                </aside>
+
+                <section class="col-span-12 lg:col-span-9 xl:col-span-9 px-5 sm:px-8 lg:px-12 py-10 text-[#102550]">
+                    <template x-if="spacesLoading">
+                        <div class="rounded-[12px] bg-white/55 border border-white/50 px-5 py-5 text-[#203157]/65">Departamentlər yüklənir...</div>
+                    </template>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                        <template x-for="space in orderedSpaces()" :key="'main-space-' + space.id">
+                            <a :href="'/spaces/' + space.id" class="group min-h-[98px] rounded-[8px] bg-gradient-to-br from-[#2d5ba4] to-[#0d817c] hover:from-[#3368bb] hover:to-[#0b8f89] text-white shadow-[0_18px_40px_rgba(13,34,76,0.18)] px-5 py-4 flex items-center justify-center transition">
+                                <div class="w-full flex items-start justify-between gap-3">
+                                    <h3 class="text-[15px] leading-5 text-center flex-1 break-words hyphens-auto" x-text="space.name"></h3>
+                                    <span x-show="Number(filters.space_id) === Number(space.id)" class="shrink-0 rounded-full bg-white/18 px-2 py-1 text-[10px]">Seçilib</span>
+                                </div>
+                            </a>
+                        </template>
                     </div>
                 </section>
-            </template>
-        </div>
-
-        <div class="rounded-[10px] bg-[#213b78]/95 border border-white/10 shadow-[0_16px_40px_rgba(5,14,45,0.2)] px-5 py-5">
-            <div class="flex items-center justify-between gap-4 mb-5">
-                <h2 class="text-xl font-semibold">Statistika</h2>
-                <span class="text-sm text-white/55">Departamentlər üzrə ümumi vəziyyət</span>
-            </div>
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
-                <template x-for="space in spaceStats" :key="`stat-${space.id}`">
-                    <div class="rounded-[8px] bg-white/6 border border-white/10 p-4">
-                        <div class="flex items-center justify-between gap-4 mb-3">
-                            <h3 class="font-medium truncate" x-text="space.name"></h3>
-                            <span class="text-xs text-white/55" x-text="`${space.tasks_total || 0} tapşırıq • ${space.boards_count || 0} layihə`"></span>
-                        </div>
-                        <div class="h-3 rounded-full bg-[#142b59] overflow-hidden flex">
-                            <div class="bg-white/30" :style="`width:${statPart(space.todo_count, space.tasks_total)}%`"></div>
-                            <div class="bg-[#f7aa14]" :style="`width:${statPart(space.in_progress_count, space.tasks_total)}%`"></div>
-                            <div class="bg-[#955bf7]" :style="`width:${statPart(space.waiting_count, space.tasks_total)}%`"></div>
-                            <div class="bg-[#0dd33f]" :style="`width:${statPart(space.completed_count, space.tasks_total)}%`"></div>
-                            <div class="bg-[#ef4444]" :style="`width:${statPart(space.canceled_count, space.tasks_total)}%`"></div>
-                        </div>
-                        <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-white/70">
-                            <span>Görüləcək: <b x-text="space.todo_count || 0"></b></span>
-                            <span>İcra olunur: <b x-text="space.in_progress_count || 0"></b></span>
-                            <span>Təsdiq: <b x-text="space.waiting_count || 0"></b></span>
-                            <span>Tamamlandı: <b x-text="space.completed_count || 0"></b></span>
-                            <span>Ləğv: <b x-text="space.canceled_count || 0"></b></span>
-                            <span>Gecikmiş: <b x-text="space.overdue_count || 0"></b></span>
-                        </div>
-                    </div>
-                </template>
             </div>
         </div>
-    </section>
 
     <div x-show="showCreateModal" x-cloak x-transition.opacity class="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
         <div @click.stop x-transition.scale class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[18px] bg-gradient-to-b from-[#233d82] to-[#182b5d] border border-white/10 shadow-2xl text-white">
@@ -697,6 +621,134 @@ function dashboard() {
             total = Number(total || 0);
             if (!total) return 0;
             return Math.max(0, Math.min(100, Math.round((Number(value || 0) / total) * 100)));
+        },
+
+        allDashboardTasks() {
+            return Object.values(this.groupedTasks || {}).flat();
+        },
+
+        sidebarTasks() {
+            return this.allDashboardTasks().slice(0, 12);
+        },
+
+        orderedSpaces() {
+            const selectedId = Number(this.filters.space_id || 0);
+            const list = [...(this.spaces || [])];
+            if (!selectedId) return list;
+
+            return list.sort((a, b) => {
+                if (Number(a.id) === selectedId) return -1;
+                if (Number(b.id) === selectedId) return 1;
+                return String(a.name || '').localeCompare(String(b.name || ''), 'az');
+            });
+        },
+
+        statusColor(status) {
+            return {
+                todo: '#c9d6ea',
+                in_progress: '#f6a21a',
+                waiting_for_approve: '#9a67ff',
+                completed: '#31d66d',
+                canceled: '#ef5757',
+            }[status] || '#ffffff';
+        },
+
+        statusTotal(status) {
+            const fieldMap = {
+                todo: 'todo_count',
+                in_progress: 'in_progress_count',
+                waiting_for_approve: 'waiting_count',
+                completed: 'completed_count',
+                canceled: 'canceled_count',
+            };
+            const field = fieldMap[status];
+            if (!field) return 0;
+
+            return (this.spaceStats || []).reduce((sum, space) => sum + Number(space[field] || 0), 0);
+        },
+
+        overallTotal() {
+            return (this.spaceStats || []).reduce((sum, space) => sum + Number(space.tasks_total || 0), 0);
+        },
+
+        overallCompleted() {
+            return this.statusTotal('completed');
+        },
+
+        overallOverdue() {
+            return (this.spaceStats || []).reduce((sum, space) => sum + Number(space.overdue_count || 0), 0);
+        },
+
+        overallBoards() {
+            return (this.spaceStats || []).reduce((sum, space) => sum + Number(space.boards_count || 0), 0);
+        },
+
+        activeTotal() {
+            return this.statusTotal('todo') + this.statusTotal('in_progress') + this.statusTotal('waiting_for_approve');
+        },
+
+        statPercent(value, total) {
+            total = Number(total || 0);
+            if (!total) return 0;
+            return Math.max(0, Math.min(100, Math.round((Number(value || 0) / total) * 100)));
+        },
+
+        completionRate() {
+            return this.statPercent(this.overallCompleted(), this.overallTotal());
+        },
+
+        overdueRate() {
+            return this.statPercent(this.overallOverdue(), this.overallTotal());
+        },
+
+        statusDonutStyle() {
+            const total = this.overallTotal();
+            if (!total) return 'background: rgba(255,255,255,.12)';
+
+            let start = 0;
+            const segments = this.statusSections.map((section) => {
+                const value = this.statusTotal(section.key);
+                if (!value) return null;
+
+                const end = start + (value / total) * 100;
+                const segment = `${this.statusColor(section.key)} ${start}% ${end}%`;
+                start = end;
+                return segment;
+            }).filter(Boolean);
+
+            return segments.length
+                ? `background: conic-gradient(${segments.join(', ')})`
+                : 'background: rgba(255,255,255,.12)';
+        },
+
+        completionDonutStyle() {
+            const percent = this.completionRate();
+            return `background: conic-gradient(#31d66d 0 ${percent}%, rgba(255,255,255,.12) ${percent}% 100%)`;
+        },
+
+        overdueDonutStyle() {
+            const percent = this.overdueRate();
+            return `background: conic-gradient(#ef5757 0 ${percent}%, rgba(255,255,255,.12) ${percent}% 100%)`;
+        },
+
+        sortedSpaceStats() {
+            return [...(this.spaceStats || [])].sort((a, b) => Number(b.tasks_total || 0) - Number(a.tasks_total || 0));
+        },
+
+        riskySpaces() {
+            return [...(this.spaceStats || [])].sort((a, b) => Number(b.overdue_count || 0) - Number(a.overdue_count || 0));
+        },
+
+        spaceCompletion(space) {
+            return this.statPercent(space?.completed_count || 0, space?.tasks_total || 0);
+        },
+
+        sortedByCompletion() {
+            return [...(this.spaceStats || [])].sort((a, b) => {
+                const diff = this.spaceCompletion(b) - this.spaceCompletion(a);
+                if (diff !== 0) return diff;
+                return Number(b.tasks_total || 0) - Number(a.tasks_total || 0);
+            });
         },
 
         visibleStatusSections() {

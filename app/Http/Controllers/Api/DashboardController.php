@@ -16,12 +16,23 @@ class DashboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $employee = $request->user();
+        $onlyEmployeeTasks = function ($query) use ($employee) {
+            $query->where('created_by', $employee->id)
+                ->orWhere('assigned_by', $employee->id)
+                ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id))
+                ->orWhereHas('subtasks', function ($subtasks) use ($employee) {
+                    $subtasks->where('created_by', $employee->id)
+                        ->orWhere('assigned_by', $employee->id)
+                        ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id));
+                });
+        };
 
         // ── Yalnız mənə aid tapşırıqlar (yaratdıqlarım + assign olunduqlarım) ──
-        $myTasks = Task::forEmployee($employee)
+        $myTasks = Task::query()
             ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
             ->withCount('subtasks')
             ->whereNull('parent_task_id')
+            ->where($onlyEmployeeTasks)
             ->get();
 
         // ── Space-lər: members_count + mənə aid tasks_count ──────────────────
@@ -64,7 +75,7 @@ class DashboardController extends Controller
             ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
             ->withCount(['subtasks', 'attachments', 'allComments as comments_count'])
             ->whereNull('parent_task_id')
-            ->forEmployee($employee);
+            ->where($onlyEmployeeTasks);
 
         if ($request->filled('space_id')) {
             $taskQuery->where('space_id', $request->integer('space_id'));

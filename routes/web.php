@@ -21,6 +21,7 @@ Route::middleware(['auth', 'active.employee'])->group(function () {
 
     // Dashboard
     Route::get('/', [DashboardWebController::class, 'index'])->name('dashboard');
+    Route::get('/statistics', [DashboardWebController::class, 'statistics'])->name('dashboard.statistics');
 
     // Spaces
     // Route::get('/spaces',              [SpaceWebController::class, 'index'])->name('spaces.index');

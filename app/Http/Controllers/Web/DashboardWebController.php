@@ -32,4 +32,9 @@ class DashboardWebController extends Controller
 
         return view('dashboard');
     }
+
+    public function statistics(): View
+    {
+        return view('dashboard-statistics');
+    }
 }
