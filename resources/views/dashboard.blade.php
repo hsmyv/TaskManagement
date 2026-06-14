@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="min-h-[calc(100vh-74px)] bg-gradient-to-br from-[#132e69] via-[#1d2f67] to-[#39245f] px-3 sm:px-5 lg:px-8 py-5 text-white" x-data="dashboard()" x-init="init()">
-    <section class="max-w-7xl mx-auto space-y-7">
+    <section class="max-w-[1560px] mx-auto space-y-7">
         <style>
             .dashboard-scroll {
                 scrollbar-width: thin;
@@ -64,6 +64,13 @@
                                 <option value="high">Yüksək</option>
                                 <option value="urgent">Təcili</option>
                             </select>
+                        </div>
+                        <div class="grid grid-cols-5 gap-1.5 pt-1">
+                            <button type="button" @click="setDueFilter(1)" :class="isDueFilterActive(1) ? 'bg-white text-[#203d75]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">1 gün</button>
+                            <button type="button" @click="setDueFilter(3)" :class="isDueFilterActive(3) ? 'bg-white text-[#203d75]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">3 gün</button>
+                            <button type="button" @click="setDueFilter(7)" :class="isDueFilterActive(7) ? 'bg-white text-[#203d75]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">7 gün</button>
+                            <button type="button" @click="setDueFilter(14)" :class="isDueFilterActive(14) ? 'bg-white text-[#203d75]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">14 gün</button>
+                            <button type="button" @click="setOverdueFilter()" :class="filters.overdue ? 'bg-[#ffdad6] text-[#9f241d]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">Gecikmiş</button>
                         </div>
                     </div>
 
@@ -568,7 +575,7 @@ function dashboard() {
         newInlineSubtask: { title:'', due_date:'', assignee_ids:[] },
         showChecklistForm: false,
         newChecklistItem: { title: '' },
-        filters: { priority: '', status: '', due_days: '30', overdue: false, space_id: '', q: '' },
+        filters: { priority: '', status: '', due_days: '', overdue: false, space_id: '', q: '' },
         newTask: {},
         statusSections: [
             { key:'todo', label:'Görüləcək' },
@@ -629,6 +636,22 @@ function dashboard() {
 
         sidebarTasks() {
             return this.allDashboardTasks().slice(0, 12);
+        },
+
+        setDueFilter(days) {
+            this.filters.overdue = false;
+            this.filters.due_days = String(days);
+            this.loadTasks();
+        },
+
+        setOverdueFilter() {
+            this.filters.due_days = '';
+            this.filters.overdue = !this.filters.overdue;
+            this.loadTasks();
+        },
+
+        isDueFilterActive(days) {
+            return !this.filters.overdue && String(this.filters.due_days) === String(days);
         },
 
         orderedSpaces() {

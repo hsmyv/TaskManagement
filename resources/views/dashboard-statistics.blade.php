@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="min-h-[calc(100vh-74px)] bg-gradient-to-br from-[#132e69] via-[#1d2f67] to-[#39245f] px-3 sm:px-5 lg:px-8 py-5 text-white" x-data="dashboardStatistics()" x-init="init()">
-    <section class="max-w-7xl mx-auto space-y-6">
+    <section class="max-w-[1560px] mx-auto space-y-6">
         <style>
             .statistics-scroll {
                 scrollbar-width: thin;
@@ -72,13 +72,13 @@
                         </div>
                         <div class="space-y-2 flex-1 w-full min-w-0">
                             <template x-for="s in statusSections" :key="'stat-status-' + s.key">
-                                <div class="flex items-center justify-between gap-3 text-sm min-w-0">
-                                    <span class="flex items-center gap-2 text-white/72 min-w-0">
+                                <button type="button" @click="selectStatus(s.key)" class="w-full flex items-center justify-between gap-3 text-sm min-w-0 rounded-[9px] px-2 py-1.5 transition" :class="selectedStatus === s.key ? 'bg-white/14 text-white' : 'hover:bg-white/7'">
+                                    <span class="flex items-center gap-2 text-white/72 min-w-0 text-left">
                                         <i class="w-2.5 h-2.5 rounded-full shrink-0" :style="'background:' + statusColor(s.key)"></i>
                                         <span class="truncate" x-text="s.label"></span>
                                     </span>
                                     <b class="shrink-0" x-text="statusTotal(s.key)"></b>
-                                </div>
+                                </button>
                             </template>
                         </div>
                     </div>
@@ -122,20 +122,40 @@
 
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
                 <div class="rounded-[16px] bg-[#142d64]/95 border border-white/10 p-5 min-w-0">
-                    <h2 class="font-semibold mb-4 break-words">Departament yükü</h2>
-                    <div class="statistics-scroll max-h-[420px] overflow-y-auto pr-1 space-y-4">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <h2 class="font-semibold break-words">Departament yükü</h2>
+                        <span class="rounded-full bg-white/10 border border-white/10 px-3 py-1 text-xs text-white/70" x-text="selectedStatusLabel()"></span>
+                    </div>
+                    <div class="statistics-scroll max-h-[520px] overflow-y-auto pr-1 space-y-4">
                         <template x-for="space in sortedSpaceStats()" :key="'stat-workload-' + space.id">
-                            <div class="min-w-0">
-                                <div class="flex items-center justify-between gap-3 text-sm mb-2 min-w-0">
+                            <div class="min-w-0 rounded-[12px] bg-white/5 border border-white/10 p-3">
+                                <button type="button" @click="toggleSpace(space.id)" class="w-full flex items-center justify-between gap-3 text-sm mb-2 min-w-0 text-left">
                                     <span class="truncate text-white/78" x-text="space.name"></span>
-                                    <span class="text-white/50 shrink-0" x-text="(space.tasks_total || 0) + ' tapşırıq'"></span>
-                                </div>
+                                    <span class="flex items-center gap-2 shrink-0">
+                                        <span class="text-white/50" x-text="spaceTasksByStatus(space.id).length + ' tapşırıq'"></span>
+                                        <span class="text-white/45 transition" :class="isSpaceOpen(space.id) ? 'rotate-90' : ''">›</span>
+                                    </span>
+                                </button>
                                 <div class="h-3 rounded-full bg-[#0d244f] overflow-hidden flex">
-                                    <div :style="'width:' + statPart(space.todo_count, space.tasks_total) + '%; background:' + statusColor('todo')"></div>
-                                    <div :style="'width:' + statPart(space.in_progress_count, space.tasks_total) + '%; background:' + statusColor('in_progress')"></div>
-                                    <div :style="'width:' + statPart(space.waiting_count, space.tasks_total) + '%; background:' + statusColor('waiting_for_approve')"></div>
-                                    <div :style="'width:' + statPart(space.completed_count, space.tasks_total) + '%; background:' + statusColor('completed')"></div>
-                                    <div :style="'width:' + statPart(space.canceled_count, space.tasks_total) + '%; background:' + statusColor('canceled')"></div>
+                                    <div :style="'width:' + spaceStatusPart(space.id, 'todo') + '%; background:' + statusColor('todo')"></div>
+                                    <div :style="'width:' + spaceStatusPart(space.id, 'in_progress') + '%; background:' + statusColor('in_progress')"></div>
+                                    <div :style="'width:' + spaceStatusPart(space.id, 'waiting_for_approve') + '%; background:' + statusColor('waiting_for_approve')"></div>
+                                    <div :style="'width:' + spaceStatusPart(space.id, 'completed') + '%; background:' + statusColor('completed')"></div>
+                                    <div :style="'width:' + spaceStatusPart(space.id, 'canceled') + '%; background:' + statusColor('canceled')"></div>
+                                </div>
+                                <div class="mt-3 space-y-2" x-show="isSpaceOpen(space.id)">
+                                    <template x-if="spaceTasksByStatus(space.id).length === 0">
+                                        <div class="rounded-[10px] bg-white/5 border border-white/10 px-3 py-2 text-xs text-white/45">Bu status üzrə tapşırıq yoxdur.</div>
+                                    </template>
+                                    <template x-for="task in spaceTasksByStatus(space.id).slice(0, 5)" :key="'space-status-task-' + space.id + '-' + task.id">
+                                        <div class="rounded-[10px] bg-white/5 border border-white/10 px-3 py-2 min-w-0">
+                                            <div class="flex items-start justify-between gap-3 min-w-0">
+                                                <p class="text-xs text-white/80 truncate" :title="task.title" x-text="task.title"></p>
+                                                <span class="shrink-0 text-[10px] text-white/45" x-text="task.due_date ? formatDate(task.due_date) : '-'"></span>
+                                            </div>
+                                            <p class="mt-1 text-[11px] text-white/45 truncate" x-text="task.board?.name || 'Boardsuz'"></p>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </template>
@@ -163,6 +183,55 @@
                     </div>
                 </div>
             </div>
+
+            <div class="rounded-[16px] bg-[#142d64]/95 border border-white/10 p-5 min-w-0">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <h2 class="font-semibold break-words">Siz tərəfindən yaradılan və verilən tapşırıqlar</h2>
+                    <span class="text-xs text-white/50" x-text="assignedByTasks.length + ' tapşırıq'"></span>
+                </div>
+                <div class="statistics-scroll max-h-[520px] overflow-y-auto pr-1 space-y-3">
+                    <template x-if="assignedByTasks.length === 0">
+                        <div class="rounded-[12px] bg-white/5 border border-white/10 px-4 py-4 text-sm text-white/55">Sizin tərəfinizdən yaradılan və ya verilən tapşırıq yoxdur.</div>
+                    </template>
+                    <template x-for="task in assignedByTasks" :key="'assigned-by-task-' + task.id">
+                        <div class="w-full rounded-[12px] bg-white/5 border border-white/10 px-4 py-3 min-w-0">
+                            <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="'background:' + statusColor(task.status)"></span>
+                                        <p class="font-medium text-white truncate" :title="task.title" x-text="task.title"></p>
+                                    </div>
+                                    <p class="text-xs text-white/48 mt-1 truncate">
+                                        <span x-text="task.space?.name || 'Departament yoxdur'"></span>
+                                        <span> / </span>
+                                        <span x-text="task.board?.name || 'Boardsuz'"></span>
+                                    </p>
+                                    <p class="text-xs text-white/60 mt-2 line-clamp-2 break-words" x-text="task.description || 'Təsvir yoxdur'"></p>
+                                </div>
+                                <div class="shrink-0 min-w-[220px] space-y-2">
+                                    <div class="flex justify-between gap-3 text-xs text-white/55">
+                                        <span>Status</span>
+                                        <b class="text-white/80" x-text="statusLabel(task.status)"></b>
+                                    </div>
+                                    <div class="flex justify-between gap-3 text-xs text-white/55">
+                                        <span>Son tarix</span>
+                                        <b class="text-white/80" x-text="task.due_date ? formatDate(task.due_date) : '-'"></b>
+                                    </div>
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-xs text-white/55">Təyinatçılar</span>
+                                        <div class="flex -space-x-2">
+                                            <template x-for="person in (task.assignees || []).slice(0, 5)" :key="'assigned-person-' + task.id + '-' + person.id">
+                                                <img :src="person.avatar_url" :title="person.full_name" class="w-7 h-7 rounded-full object-cover ring-2 ring-[#142d64]">
+                                            </template>
+                                            <span x-show="!(task.assignees || []).length" class="text-xs text-white/45">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
     </section>
 </div>
@@ -174,6 +243,10 @@ function dashboardStatistics() {
     return {
         loading: false,
         spaceStats: [],
+        tasks: [],
+        assignedByTasks: [],
+        selectedStatus: '',
+        openSpaces: {},
         statusSections: [
             { key:'todo', label:'Görüləcək' },
             { key:'in_progress', label:'İcra olunur' },
@@ -189,8 +262,10 @@ function dashboardStatistics() {
         async loadStatistics() {
             this.loading = true;
             try {
-                const data = await api('GET', '/dashboard');
+                const data = await api('GET', '/dashboard?scope=all');
                 this.spaceStats = data.space_stats || [];
+                this.tasks = data.executive_tasks || data.assigned_by_tasks || [];
+                this.assignedByTasks = data.executive_tasks || data.assigned_by_tasks || [];
             } catch (e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail: { message: e.message || 'Xəta', type: 'error' } }));
             } finally {
@@ -206,6 +281,52 @@ function dashboardStatistics() {
                 completed: '#31d66d',
                 canceled: '#ef5757',
             }[status] || '#ffffff';
+        },
+
+        selectStatus(status) {
+            this.selectedStatus = this.selectedStatus === status ? '' : status;
+        },
+
+        statusLabel(status) {
+            return this.statusSections.find(section => section.key === status)?.label || status || '-';
+        },
+
+        selectedStatusLabel() {
+            return this.selectedStatus ? this.statusLabel(this.selectedStatus) : 'Bütün statuslar';
+        },
+
+        spaceTasksByStatus(spaceId) {
+            return this.tasks.filter(task => {
+                if (Number(task.space_id) !== Number(spaceId)) return false;
+                return this.selectedStatus ? task.status === this.selectedStatus : true;
+            });
+        },
+
+        spaceStatusPart(spaceId, status) {
+            const tasks = this.tasks.filter(task => Number(task.space_id) === Number(spaceId));
+            if (!tasks.length) return 0;
+            const count = tasks.filter(task => task.status === status).length;
+            return this.statPart(count, tasks.length);
+        },
+
+        toggleSpace(spaceId) {
+            this.openSpaces = {
+                ...this.openSpaces,
+                [spaceId]: !this.openSpaces[spaceId],
+            };
+        },
+
+        isSpaceOpen(spaceId) {
+            return !!this.openSpaces[spaceId];
+        },
+
+        formatDate(dt) {
+            if (!dt) return '';
+            const date = new Date(dt);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            return day + '/' + month + '/' + year;
         },
 
         statusTotal(status) {

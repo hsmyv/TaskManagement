@@ -33,7 +33,17 @@ class TaskController extends Controller
             ]);
 
         if (!$request->filled('board_id')) {
-            $query->forEmployee($request->user());
+            $employee = $request->user();
+            $query->where(function ($query) use ($employee) {
+                $query->where('created_by', $employee->id)
+                    ->orWhere('assigned_by', $employee->id)
+                    ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id))
+                    ->orWhereHas('subtasks', function ($subtasks) use ($employee) {
+                        $subtasks->where('created_by', $employee->id)
+                            ->orWhere('assigned_by', $employee->id)
+                            ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id));
+                    });
+            });
         }
 
         // FilterlÉ™r (TIS section 5.2)
@@ -60,7 +70,11 @@ class TaskController extends Controller
             });
         }
         if ($request->filled('created_by')) {
-            $query->where('created_by', $request->created_by);
+            $creatorId = $request->integer('created_by');
+            $query->where(function ($query) use ($creatorId) {
+                $query->where('created_by', $creatorId)
+                    ->orWhere('assigned_by', $creatorId);
+            });
         }
         if ($request->filled('board_id')) {
             $query->where('board_id', $request->board_id);

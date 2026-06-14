@@ -71,11 +71,16 @@ class DashboardController extends Controller
                 ->get();
         }
 
+        $useAllTasks = $request->string('scope')->toString() === 'all' && $employee->hasGlobalAccess();
+
         $taskQuery = Task::query()
             ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
             ->withCount(['subtasks', 'attachments', 'allComments as comments_count'])
-            ->whereNull('parent_task_id')
-            ->where($onlyEmployeeTasks);
+            ->whereNull('parent_task_id');
+
+        if (!$useAllTasks) {
+            $taskQuery->where($onlyEmployeeTasks);
+        }
 
         if ($request->filled('space_id')) {
             $taskQuery->where('space_id', $request->integer('space_id'));
@@ -92,6 +97,7 @@ class DashboardController extends Controller
         if ($request->filled('due_days')) {
             $days = max(1, $request->integer('due_days', 7));
             $taskQuery->whereNotNull('due_date')
+                ->where('due_date', '>=', now()->toDateString())
                 ->where('due_date', '<=', now()->addDays($days)->toDateString());
         }
         if ($request->filled('q')) {
@@ -106,6 +112,16 @@ class DashboardController extends Controller
         $groupedTasks = $tasks
             ->groupBy('status')
             ->map(fn ($group) => TaskResource::collection($group)->resolve($request));
+        $executiveTasks = Task::query()
+            ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
+            ->withCount(['subtasks', 'attachments', 'allComments as comments_count'])
+            ->whereNull('parent_task_id')
+            ->where(function ($query) use ($employee) {
+                $query->where('created_by', $employee->id)
+                    ->orWhere('assigned_by', $employee->id);
+            })
+            ->latest()
+            ->get();
 
         return response()->json([
             'stats' => [
@@ -131,6 +147,8 @@ class DashboardController extends Controller
 
             'my_spaces' => SpaceResource::collection($spaces),
             'tasks' => TaskResource::collection($tasks),
+            'executive_tasks' => TaskResource::collection($executiveTasks),
+            'assigned_by_tasks' => TaskResource::collection($executiveTasks),
             'grouped_tasks' => $groupedTasks,
             'space_stats' => Space::query()
                 ->where('is_active', true)
