@@ -40,6 +40,9 @@ class DashboardController extends Controller
             // Admin / Executive — bütün space-lər, bütün tapşırıqlar
             $spaces = Space::withCount('members')
                 ->withCount('boards')
+                ->withCount([
+                    'boards as active_boards_count' => fn ($query) => $query->whereNull('archived_at'),
+                ])
                 ->withCount('tasks')
                 ->where('is_active', true)
                 ->get();
@@ -49,6 +52,9 @@ class DashboardController extends Controller
             $spaces = $employee->spaces()
                 ->withCount('members')
                 ->withCount('boards')
+                ->withCount([
+                    'boards as active_boards_count' => fn ($query) => $query->whereNull('archived_at'),
+                ])
                 ->withCount([
                     'tasks as tasks_count' => function ($query) use ($employee) {
                         $query->whereNull('parent_task_id')

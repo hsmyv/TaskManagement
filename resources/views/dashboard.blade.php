@@ -3,8 +3,8 @@
 @section('page-title', 'Dashboard')
 
 @section('content')
-<div class="min-h-[calc(100vh-74px)] bg-gradient-to-br from-[#132e69] via-[#1d2f67] to-[#39245f] px-3 sm:px-5 lg:px-8 py-5 text-white" x-data="dashboard()" x-init="init()">
-    <section class="max-w-[1560px] mx-auto space-y-7">
+<div class="min-h-[calc(100vh-74px)] bg-gradient-to-br from-[#132e69] via-[#1d2f67] to-[#39245f] px-0 py-5 text-white" x-data="dashboard()" x-init="init()">
+    <section class="w-full max-w-none mx-0 space-y-7">
         <style>
             .dashboard-scroll {
                 scrollbar-width: thin;
@@ -45,7 +45,10 @@
                 <aside class="col-span-12 lg:col-span-3 xl:col-span-3 bg-[#355188] px-5 py-6 text-white">
                     <div class="flex items-center justify-between gap-3 mb-4">
                         <h2 class="text-[22px] font-medium">Tapşırıqlar</h2>
-                        <button @click="openCreateTask()" class="w-9 h-9 rounded-[7px] bg-[#0d244f] hover:bg-[#163464] border border-white/10 text-3xl leading-none flex items-center justify-center pb-1">+</button>
+                        <div class="flex items-center gap-2">
+                            <button @click="resetFilters()" class="h-9 px-3 rounded-[7px] bg-[#203d75] hover:bg-[#284984] border border-white/10 text-[11px]">Sıfırla</button>
+                            <button @click="openCreateTask()" class="w-9 h-9 rounded-[7px] bg-[#0d244f] hover:bg-[#163464] border border-white/10 text-3xl leading-none flex items-center justify-center pb-1">+</button>
+                        </div>
                     </div>
 
                     <div class="space-y-2 mb-4">
@@ -113,10 +116,20 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                         <template x-for="space in orderedSpaces()" :key="'main-space-' + space.id">
-                            <a :href="'/spaces/' + space.id" class="group min-h-[98px] rounded-[8px] bg-gradient-to-br from-[#2d5ba4] to-[#0d817c] hover:from-[#3368bb] hover:to-[#0b8f89] text-white shadow-[0_18px_40px_rgba(13,34,76,0.18)] px-5 py-4 flex items-center justify-center transition">
+                            <a :href="'/spaces/' + space.id" class="group min-h-[118px] rounded-[8px] bg-gradient-to-br from-[#2d5ba4] to-[#0d817c] hover:from-[#3368bb] hover:to-[#0b8f89] text-white shadow-[0_18px_40px_rgba(13,34,76,0.18)] px-5 py-4 flex flex-col items-center justify-center transition">
                                 <div class="w-full flex items-start justify-between gap-3">
                                     <h3 class="text-[15px] leading-5 text-center flex-1 break-words hyphens-auto" x-text="space.name"></h3>
                                     <span x-show="Number(filters.space_id) === Number(space.id)" class="shrink-0 rounded-full bg-white/18 px-2 py-1 text-[10px]">Seçilib</span>
+                                </div>
+                                <div class="mt-4 w-full grid grid-cols-2 gap-2 text-[11px] text-white/80">
+                                    <div class="rounded-[7px] bg-white/12 px-2 py-1.5 text-center">
+                                        <b x-text="space.active_boards_count ?? space.boards_count ?? 0"></b>
+                                        <span> aktiv layihə</span>
+                                    </div>
+                                    <div class="rounded-[7px] bg-white/12 px-2 py-1.5 text-center">
+                                        <b x-text="space.tasks_count || 0"></b>
+                                        <span> tapşırıq</span>
+                                    </div>
                                 </div>
                             </a>
                         </template>
@@ -639,6 +652,11 @@ function dashboard() {
         },
 
         setDueFilter(days) {
+            if (this.isDueFilterActive(days)) {
+                this.filters.due_days = '';
+                this.loadTasks();
+                return;
+            }
             this.filters.overdue = false;
             this.filters.due_days = String(days);
             this.loadTasks();
@@ -652,6 +670,11 @@ function dashboard() {
 
         isDueFilterActive(days) {
             return !this.filters.overdue && String(this.filters.due_days) === String(days);
+        },
+
+        resetFilters() {
+            this.filters = { priority: '', status: '', due_days: '', overdue: false, space_id: '', q: '' };
+            this.loadTasks();
         },
 
         orderedSpaces() {
