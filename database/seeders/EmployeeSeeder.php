@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 class EmployeeSeeder extends Seeder
 {
     private const DEFAULT_PASSWORD = 'password123!';
+    private const EMAIL_DOMAIN = 'sosial.gov.az';
 
     private const DIRECTORY_TEXT = <<<'TXT'
 Fərid Məmmədov
@@ -767,7 +768,7 @@ TXT;
     public function run(): void
     {
         $admin = Employee::updateOrCreate(
-            ['email' => 'admin@tis.local'],
+            ['email' => 'admin@' . self::EMAIL_DOMAIN],
             [
                 'name' => 'Sistem',
                 'surname' => 'Administratoru',
@@ -780,7 +781,7 @@ TXT;
         $admin->assignRole(UserRole::Administrator->value);
 
         $aiEmployee = Employee::updateOrCreate(
-            ['email' => 'ai@tis.local'],
+            ['email' => 'ai@' . self::EMAIL_DOMAIN],
             [
                 'name' => 'AI',
                 'surname' => '',
@@ -901,7 +902,7 @@ TXT;
         $this->command?->table(
             ['Hesab', 'Şifrə'],
             [
-                ['admin@tis.local', 'admin123!'],
+                ['admin@' . self::EMAIL_DOMAIN, 'admin123!'],
                 ['digər bütün seed işçiləri', self::DEFAULT_PASSWORD],
             ]
         );
@@ -1141,10 +1142,20 @@ TXT;
     {
         $base = $this->asciiSlug($fullName, '.');
         $base = trim($base, '.') ?: 'employee';
+        $base = $this->normalizeEmailBase($base);
         $emailCounts[$base] = ($emailCounts[$base] ?? 0) + 1;
         $suffix = $emailCounts[$base] > 1 ? '.' . $emailCounts[$base] : '';
 
-        return $base . $suffix . '@tis.local';
+        return $base . $suffix . '@' . self::EMAIL_DOMAIN;
+    }
+
+    private function normalizeEmailBase(string $base): string
+    {
+        return str_replace(
+            ['hesen', 'elcin'],
+            ['hasan', 'elchin'],
+            $base
+        );
     }
 
     private function departmentCode(string $name, int $index): string

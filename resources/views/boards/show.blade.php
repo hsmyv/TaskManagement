@@ -1018,7 +1018,8 @@ function boardHub(spaceId, boardId) {
         },
 
         async init() {
-            this.filters.onlyMe = localStorage.getItem(`board:${this.boardId}:onlyMe`) === '1';
+            const savedOnlyMe = localStorage.getItem(`board:${this.boardId}:onlyMe`);
+            this.filters.onlyMe = savedOnlyMe === null ? true : savedOnlyMe === '1';
             window.addEventListener('open-task-modal', event => {
                 const taskId = event.detail?.taskId;
                 if (taskId) this.openTaskModal(taskId);

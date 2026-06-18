@@ -42,74 +42,7 @@
             </div>
 
             <div class="grid grid-cols-12 min-h-[560px] bg-[#aaa7b6]">
-                <aside class="col-span-12 lg:col-span-3 xl:col-span-3 bg-[#355188] px-5 py-6 text-white">
-                    <div class="flex items-center justify-between gap-3 mb-4">
-                        <h2 class="text-[22px] font-medium">Tapşırıqlar</h2>
-                        <div class="flex items-center gap-2">
-                            <button @click="resetFilters()" class="h-9 px-3 rounded-[7px] bg-[#203d75] hover:bg-[#284984] border border-white/10 text-[11px]">Sıfırla</button>
-                            <button @click="openCreateTask()" class="w-9 h-9 rounded-[7px] bg-[#0d244f] hover:bg-[#163464] border border-white/10 text-3xl leading-none flex items-center justify-center pb-1">+</button>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2 mb-4">
-                        <input type="search" x-model.debounce.400ms="filters.q" @input.debounce.400ms="loadTasks()" placeholder="Tapşırıq və layihə axtar..." class="w-full h-10 rounded-[7px] border border-white/15 bg-[#203d75] px-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-white/35">
-                        <div class="grid grid-cols-2 gap-2">
-                            <select x-model="filters.status" @change="loadTasks()" class="h-10 rounded-[7px] border border-white/15 bg-[#203d75] px-2 text-xs text-white focus:outline-none">
-                                <option value="">Bütün statuslar</option>
-                                <template x-for="s in statusSections" :key="'filter-status-' + s.key">
-                                    <option :value="s.key" x-text="s.label"></option>
-                                </template>
-                            </select>
-                            <select x-model="filters.priority" @change="loadTasks()" class="h-10 rounded-[7px] border border-white/15 bg-[#203d75] px-2 text-xs text-white focus:outline-none">
-                                <option value="">Bütün prioritetlər</option>
-                                <option value="low">Aşağı</option>
-                                <option value="medium">Orta</option>
-                                <option value="high">Yüksək</option>
-                                <option value="urgent">Təcili</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-5 gap-1.5 pt-1">
-                            <button type="button" @click="setDueFilter(1)" :class="isDueFilterActive(1) ? 'bg-white text-[#203d75]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">1 gün</button>
-                            <button type="button" @click="setDueFilter(3)" :class="isDueFilterActive(3) ? 'bg-white text-[#203d75]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">3 gün</button>
-                            <button type="button" @click="setDueFilter(7)" :class="isDueFilterActive(7) ? 'bg-white text-[#203d75]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">7 gün</button>
-                            <button type="button" @click="setDueFilter(14)" :class="isDueFilterActive(14) ? 'bg-white text-[#203d75]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">14 gün</button>
-                            <button type="button" @click="setOverdueFilter()" :class="filters.overdue ? 'bg-[#ffdad6] text-[#9f241d]' : 'bg-[#203d75] text-white hover:bg-[#284984]'" class="h-8 rounded-[7px] border border-white/15 text-[11px] transition">Gecikmiş</button>
-                        </div>
-                    </div>
-
-                    <div class="dashboard-scroll max-h-[430px] overflow-y-auto pr-1 space-y-3">
-                        <template x-if="tasksLoading">
-                            <div class="rounded-[12px] bg-[#1d376d] px-4 py-4 text-sm text-white/65">Tapşırıqlar yüklənir...</div>
-                        </template>
-                        <template x-if="!tasksLoading && sidebarTasks().length === 0">
-                            <div class="rounded-[12px] bg-[#1d376d] px-4 py-4 text-sm text-white/65">Tapşırıq yoxdur</div>
-                        </template>
-                        <template x-for="task in sidebarTasks()" :key="'side-task-' + task.id">
-                            <button type="button" @click="openTaskModal(task.id)" class="w-full rounded-[12px] bg-[#1d376d] hover:bg-[#254780] px-3 py-3 text-left shadow-[0_12px_26px_rgba(4,16,45,0.18)] transition">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div class="min-w-0 flex-1">
-                                        <p class="text-[13px] truncate" :title="task.title" x-text="task.title"></p>
-                                        <p class="text-[10px] text-white/45 mt-1 truncate" x-text="task.board?.name || task.space?.name || ''"></p>
-                                    </div>
-                                    <div class="flex -space-x-2 shrink-0">
-                                        <template x-for="person in (task.assignees || []).slice(0, 2)" :key="'side-assignee-' + task.id + '-' + person.id">
-                                            <img :src="person.avatar_url" :title="person.full_name" class="w-8 h-8 rounded-full object-cover ring-2 ring-[#1d376d]">
-                                        </template>
-                                    </div>
-                                </div>
-                                <div class="mt-3 flex items-center gap-2">
-                                    <div class="h-2 flex-1 rounded-full bg-[#102755] overflow-hidden">
-                                        <div class="h-2 rounded-full" :class="taskProgress(task) >= 80 ? 'bg-[#38c66a]' : 'bg-[#c9782c]'" :style="'width:' + taskProgress(task) + '%'"></div>
-                                    </div>
-                                    <span class="text-[10px] text-white/70 min-w-[34px]" x-text="taskProgress(task) + '%'"></span>
-                                    <span class="text-[10px] text-white/65" x-text="task.due_date ? formatDate(task.due_date) : '-'"></span>
-                                </div>
-                            </button>
-                        </template>
-                    </div>
-                </aside>
-
-                <section class="col-span-12 lg:col-span-9 xl:col-span-9 px-5 sm:px-8 lg:px-12 py-10 text-[#102550]">
+                <section class="col-span-12 px-5 sm:px-8 lg:px-12 py-10 text-[#102550]">
                     <template x-if="spacesLoading">
                         <div class="rounded-[12px] bg-white/55 border border-white/50 px-5 py-5 text-[#203157]/65">Departamentlər yüklənir...</div>
                     </template>
@@ -133,6 +66,97 @@
                                 </div>
                             </a>
                         </template>
+                    </div>
+
+                    <div class="mt-8 rounded-[18px] border border-white/25 bg-[#1f3976]/95 text-white shadow-[0_18px_50px_rgba(9,24,62,0.22)] overflow-hidden">
+                        <div class="px-4 sm:px-5 py-4 border-b border-white/10 space-y-4">
+                            <div>
+                                <h2 class="text-xl font-semibold">Tapşırıqlar</h2>
+                                <p class="text-xs text-white/50 mt-1">Statuslara görə bölünmüş tapşırıq axını</p>
+                            </div>
+                            <div class="grid grid-cols-1 lg:grid-cols-[minmax(260px,1fr)_auto] gap-3">
+                                <input type="search" x-model.debounce.400ms="filters.q" @input.debounce.400ms="loadTasks()" placeholder="Tapşırıq və layihə axtar..." class="h-11 rounded-xl border border-white/15 bg-white/10 px-4 text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-white/35">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <select x-model="filters.status" @change="loadTasks()" class="h-11 rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white focus:outline-none">
+                                        <option class="bg-[#1b2f64] text-white" value="">Bütün statuslar</option>
+                                        <template x-for="s in statusSections" :key="'main-filter-status-' + s.key">
+                                            <option class="bg-[#1b2f64] text-white" :value="s.key" x-text="s.label"></option>
+                                        </template>
+                                    </select>
+                                    <select x-model="filters.priority" @change="loadTasks()" class="h-11 rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white focus:outline-none">
+                                        <option class="bg-[#1b2f64] text-white" value="">Bütün prioritetlər</option>
+                                        <option class="bg-[#1b2f64] text-white" value="low">Aşağı</option>
+                                        <option class="bg-[#1b2f64] text-white" value="medium">Orta</option>
+                                        <option class="bg-[#1b2f64] text-white" value="high">Yüksək</option>
+                                        <option class="bg-[#1b2f64] text-white" value="urgent">Təcili</option>
+                                    </select>
+                                    <label class="h-11 px-3 rounded-xl bg-white/10 border border-white/15 flex items-center gap-2 text-sm">
+                                        <input type="checkbox" x-model="filters.onlyMe" @change="loadTasks()" class="w-4 h-4 rounded border-white/40 bg-white/80 text-slate-700 focus:ring-0">
+                                        Only me
+                                    </label>
+                                    <button type="button" @click="resetFilters()" class="h-11 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-sm">Sıfırla</button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-xs text-white/45 mr-1">Son tarix:</span>
+                                <button type="button" @click="setDueFilter(1)" :class="isDueFilterActive(1) ? 'bg-white text-[#203d75]' : 'bg-white/10 text-white hover:bg-white/15'" class="h-9 px-3 rounded-lg border border-white/15 text-xs transition">1 gün</button>
+                                <button type="button" @click="setDueFilter(3)" :class="isDueFilterActive(3) ? 'bg-white text-[#203d75]' : 'bg-white/10 text-white hover:bg-white/15'" class="h-9 px-3 rounded-lg border border-white/15 text-xs transition">3 gün</button>
+                                <button type="button" @click="setDueFilter(7)" :class="isDueFilterActive(7) ? 'bg-white text-[#203d75]' : 'bg-white/10 text-white hover:bg-white/15'" class="h-9 px-3 rounded-lg border border-white/15 text-xs transition">7 gün</button>
+                                <button type="button" @click="setDueFilter(14)" :class="isDueFilterActive(14) ? 'bg-white text-[#203d75]' : 'bg-white/10 text-white hover:bg-white/15'" class="h-9 px-3 rounded-lg border border-white/15 text-xs transition">14 gün</button>
+                                <button type="button" @click="setOverdueFilter()" :class="filters.overdue ? 'bg-[#ffdad6] text-[#9f241d]' : 'bg-white/10 text-white hover:bg-white/15'" class="h-9 px-3 rounded-lg border border-white/15 text-xs transition">Gecikmiş</button>
+                            </div>
+                        </div>
+                        <div class="p-4 sm:p-5 space-y-4">
+                            <template x-for="s in visibleStatusSections()" :key="'dashboard-status-' + s.key">
+                                <section class="rounded-[16px] border border-white/10 bg-white/6 overflow-hidden">
+                                    <div class="px-4 py-3 flex items-center justify-between gap-3 border-b border-white/10">
+                                        <div class="flex items-center gap-2 font-semibold" :style="'color:' + statusColor(s.key)">
+                                            <span class="w-3 h-3 rounded-full" :style="'background:' + statusColor(s.key)"></span>
+                                            <span x-text="s.label"></span>
+                                        </div>
+                                        <span class="text-xs text-white/55" x-text="(groupedTasks[s.key] || []).length + ' tapşırıq'"></span>
+                                    </div>
+                                    <div class="overflow-x-auto dashboard-scroll">
+                                        <div class="min-w-[860px]">
+                                            <div class="grid grid-cols-[2.2fr_1.5fr_1.3fr_1.1fr_0.9fr_1fr] gap-4 text-white/45 text-xs px-4 py-2 border-b border-white/10">
+                                                <div>Tapşırıq</div>
+                                                <div>Layihə</div>
+                                                <div>Məsul şəxslər</div>
+                                                <div>Son tarix</div>
+                                                <div>Prioritet</div>
+                                                <div>İrəliləyiş</div>
+                                            </div>
+                                            <template x-if="!(groupedTasks[s.key] || []).length">
+                                                <div class="px-4 py-5 text-sm text-white/50">Tapşırıq yoxdur</div>
+                                            </template>
+                                            <template x-for="task in (groupedTasks[s.key] || [])" :key="'dashboard-task-row-' + task.id">
+                                                <button type="button" @click="openTaskModal(task.id)" class="w-full text-left grid grid-cols-[2.2fr_1.5fr_1.3fr_1.1fr_0.9fr_1fr] gap-4 px-4 py-3 border-b border-white/10 hover:bg-white/5 transition items-center">
+                                                    <div class="min-w-0">
+                                                        <p class="truncate text-sm text-white" :title="task.title" x-text="task.title"></p>
+                                                        <p class="text-[11px] text-white/45 truncate" x-text="task.space?.name || ''"></p>
+                                                    </div>
+                                                    <div class="truncate text-sm text-white/80" x-text="task.board?.name || 'Boardsuz'"></div>
+                                                    <div class="flex -space-x-2">
+                                                        <template x-for="person in (task.assignees || []).slice(0, 4)" :key="'dashboard-row-person-' + task.id + '-' + person.id">
+                                                            <img :src="person.avatar_url" :title="person.full_name" class="w-8 h-8 rounded-full object-cover ring-2 ring-[#223d7b]">
+                                                        </template>
+                                                        <span x-show="!(task.assignees || []).length" class="text-sm text-white/45">-</span>
+                                                    </div>
+                                                    <div class="text-sm text-white/80" x-text="task.due_date ? formatDate(task.due_date) : '-'"></div>
+                                                    <div class="text-sm text-white/80" x-text="priorityLabel(task.priority) || 'Orta'"></div>
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="h-2.5 w-full rounded-full bg-[#17305f] overflow-hidden">
+                                                            <div class="h-2.5 rounded-full" :class="taskProgress(task) === 100 ? 'bg-[#22d34f]' : 'bg-[#c79a40]'" :style="'width:' + taskProgress(task) + '%'"></div>
+                                                        </div>
+                                                        <span class="text-xs text-white/70" x-text="taskProgress(task) + '%'"></span>
+                                                    </div>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </section>
+                            </template>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -588,7 +612,7 @@ function dashboard() {
         newInlineSubtask: { title:'', due_date:'', assignee_ids:[] },
         showChecklistForm: false,
         newChecklistItem: { title: '' },
-        filters: { priority: '', status: '', due_days: '', overdue: false, space_id: '', q: '' },
+        filters: { priority: '', status: '', due_days: '', overdue: false, space_id: '', q: '', onlyMe: true },
         newTask: {},
         statusSections: [
             { key:'todo', label:'Görüləcək' },
@@ -612,9 +636,11 @@ function dashboard() {
             try {
                 const params = new URLSearchParams();
                 Object.entries(this.filters).forEach(([key, value]) => {
+                    if (key === 'onlyMe') return;
                     if (value === true) params.set(key, 1);
                     else if (value) params.set(key, value);
                 });
+                if (!this.filters.onlyMe) params.set('scope', 'all');
                 const data = await api('GET', `/dashboard?${params.toString()}`);
                 this.stats = data.stats || {};
                 this.spaces = data.my_spaces || [];
@@ -647,10 +673,6 @@ function dashboard() {
             return Object.values(this.groupedTasks || {}).flat();
         },
 
-        sidebarTasks() {
-            return this.allDashboardTasks().slice(0, 12);
-        },
-
         setDueFilter(days) {
             if (this.isDueFilterActive(days)) {
                 this.filters.due_days = '';
@@ -673,7 +695,7 @@ function dashboard() {
         },
 
         resetFilters() {
-            this.filters = { priority: '', status: '', due_days: '', overdue: false, space_id: '', q: '' };
+            this.filters = { priority: '', status: '', due_days: '', overdue: false, space_id: '', q: '', onlyMe: true };
             this.loadTasks();
         },
 

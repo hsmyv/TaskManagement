@@ -28,6 +28,8 @@ class DashboardWebController extends Controller
             if ($targetSpace) {
                 return redirect()->route('spaces.detail', $targetSpace);
             }
+
+            return view('no-space-membership');
         }
 
         return view('dashboard');

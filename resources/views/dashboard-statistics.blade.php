@@ -265,19 +265,19 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                                 <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
                                     <p class="text-white/45 mb-1 text-xs">Status</p>
-                                    <select x-model="taskDetail.status" @change="saveTaskStatus(taskDetail.status)" :disabled="!canEditTask(taskDetail)" class="w-full h-11 rounded-xl bg-white text-slate-800 px-3 focus:outline-none disabled:opacity-60">
+                                    <select x-model="taskDetail.status" @change="saveTaskStatus(taskDetail.status)" :disabled="!canEditTask(taskDetail)" class="w-full h-11 rounded-xl bg-[#1b2f64] text-white border border-white/15 px-3 focus:outline-none disabled:opacity-60">
                                         <template x-for="s in statusSections" :key="'modal-status-' + s.key">
-                                            <option :value="s.key" x-text="s.label"></option>
+                                            <option class="bg-[#1b2f64] text-white" :value="s.key" x-text="s.label"></option>
                                         </template>
                                     </select>
                                 </div>
                                 <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
                                     <p class="text-white/45 mb-1 text-xs">Prioritet</p>
-                                    <select x-model="taskDetail.priority" @change="saveTaskPriority(taskDetail.priority)" :disabled="!canEditTask(taskDetail)" class="w-full h-11 rounded-xl bg-white text-slate-800 px-3 focus:outline-none disabled:opacity-60">
-                                        <option value="low">Aşağı</option>
-                                        <option value="medium">Orta</option>
-                                        <option value="high">Yüksək</option>
-                                        <option value="urgent">Təcili</option>
+                                    <select x-model="taskDetail.priority" @change="saveTaskPriority(taskDetail.priority)" :disabled="!canEditTask(taskDetail)" class="w-full h-11 rounded-xl bg-[#1b2f64] text-white border border-white/15 px-3 focus:outline-none disabled:opacity-60">
+                                        <option class="bg-[#1b2f64] text-white" value="low">Aşağı</option>
+                                        <option class="bg-[#1b2f64] text-white" value="medium">Orta</option>
+                                        <option class="bg-[#1b2f64] text-white" value="high">Yüksək</option>
+                                        <option class="bg-[#1b2f64] text-white" value="urgent">Təcili</option>
                                     </select>
                                 </div>
                             </div>

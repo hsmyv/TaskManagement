@@ -92,6 +92,7 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
     // Employees (search/select üçün)
     Route::get('/employees',                        [AuthController::class, 'employees']);
     Route::get('/employees/search',                 [AuthController::class, 'searchEmployees']);
+    Route::get('/employees/{employee}/profile',     [AuthController::class, 'employeeProfile']);
     Route::get('/departments',                      [SpaceController::class, 'departments']);
 
 

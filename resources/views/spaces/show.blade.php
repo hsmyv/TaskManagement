@@ -79,26 +79,29 @@
                                 <template x-for="emp in memberResults" :key="`space-member-result-${emp.id}`">
                                     <button type="button" @click="addSpaceMember(emp)" class="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/8 text-left">
                                         <img :src="emp.avatar_url" class="w-8 h-8 rounded-full object-cover">
-                                        <span class="text-sm truncate" x-text="emp.full_name"></span>
+                                        <span class="text-sm truncate flex-1" x-text="emp.full_name"></span>
+                                        <span class="px-2.5 py-1 rounded-lg bg-[#6d44c5] text-white text-[11px]">Əlavə et</span>
                                     </button>
                                 </template>
                             </div>
                         </div>
                         <div class="space-y-3 max-h-[360px] overflow-y-auto pr-1 tis-modal-scroll">
-                            @forelse($spaceMembers as $member)
-                                <div class="flex items-center gap-3 rounded-2xl bg-white/5 border border-white/8 px-3 py-3">
-                                    <img src="{{ $member->avatar_url }}" alt="{{ $member->full_name }}" class="w-11 h-11 rounded-full object-cover ring-2 ring-white/10">
-                                    <div class="min-w-0 flex-1">
-                                        <p class="text-sm font-medium text-white truncate">{{ $member->full_name }}</p>
-                                        <p class="text-xs text-white/55 truncate">{{ $member->email }}</p>
-                                    </div>
-                                    @if(($member->pivot->is_manager ?? false) || $space->manager_employee_id === $member->id)
-                                        <span class="px-2.5 py-1 rounded-full bg-[#6d44c5] text-white text-[11px] font-medium">Rəhbər</span>
-                                    @endif
-                                </div>
-                            @empty
+                            <template x-if="membersLoading">
+                                <div class="rounded-2xl bg-white/5 border border-white/8 px-3 py-4 text-sm text-white/60">Üzvlər yüklənir...</div>
+                            </template>
+                            <template x-if="!membersLoading && members.length === 0">
                                 <div class="rounded-2xl bg-white/5 border border-white/8 px-3 py-4 text-sm text-white/60">Üzv tapılmadı</div>
-                            @endforelse
+                            </template>
+                            <template x-for="member in members" :key="`space-member-${member.id}`">
+                                <button type="button" @click="openProfileModal(member.id)" class="w-full flex items-center gap-3 rounded-2xl bg-white/5 hover:bg-white/8 border border-white/8 px-3 py-3 text-left">
+                                    <img :src="member.avatar_url" :alt="member.full_name" class="w-11 h-11 rounded-full object-cover ring-2 ring-white/10">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-medium text-white truncate" x-text="member.full_name"></p>
+                                        <p class="text-xs text-white/55 truncate" x-text="member.email"></p>
+                                    </div>
+                                    <span x-show="member.is_manager" class="px-2.5 py-1 rounded-full bg-[#6d44c5] text-white text-[11px] font-medium">Rəhbər</span>
+                                </button>
+                            </template>
                         </div>
                     </div>
                 </details>
@@ -227,6 +230,36 @@
                             </div>
                         </template>
                         </button>
+                    </div>
+
+                    <div class="rounded-[22px] bg-[#263f80]/90 border border-white/10 p-4 text-white flex flex-wrap items-center gap-3">
+                        <select x-model="boardFilters.priority" @change="loadSpaceGrouped()" class="h-10 rounded-xl bg-white/90 text-slate-700 px-3 text-sm focus:outline-none">
+                            <option value="">Bütün prioritetlər</option>
+                            <option value="low">Aşağı</option>
+                            <option value="medium">Orta</option>
+                            <option value="high">Yüksək</option>
+                            <option value="urgent">Təcili</option>
+                        </select>
+                        <select x-model="boardFilters.status" @change="loadSpaceGrouped()" class="h-10 rounded-xl bg-white/90 text-slate-700 px-3 text-sm focus:outline-none">
+                            <option value="">Bütün statuslar</option>
+                            <template x-for="s in statusSections" :key="`space-filter-status-${s.key}`">
+                                <option :value="s.key" x-text="s.label"></option>
+                            </template>
+                        </select>
+                        <input type="date" x-model="boardFilters.dateFrom" @change="loadSpaceGrouped()" class="h-10 rounded-xl bg-white/90 text-slate-700 px-3 text-sm focus:outline-none">
+                        <input type="date" x-model="boardFilters.dateTo" @change="loadSpaceGrouped()" class="h-10 rounded-xl bg-white/90 text-slate-700 px-3 text-sm focus:outline-none">
+                        <label class="h-10 px-3 rounded-xl bg-white/10 border border-white/15 flex items-center gap-2 text-sm">
+                            <input type="checkbox" x-model="boardFilters.dueSoon" @change="loadSpaceGrouped()" class="w-4 h-4 rounded border-white/40 bg-white/80 text-slate-700 focus:ring-0">
+                            Son 7 gün
+                        </label>
+                        <label class="h-10 px-3 rounded-xl bg-white/10 border border-white/15 flex items-center gap-2 text-sm">
+                            <input type="checkbox" x-model="boardFilters.overdue" @change="loadSpaceGrouped()" class="w-4 h-4 rounded border-white/40 bg-white/80 text-red-500 focus:ring-0">
+                            Gecikmiş
+                        </label>
+                        <label class="h-10 px-3 rounded-xl bg-white/10 border border-white/15 flex items-center gap-2 text-sm">
+                            <input type="checkbox" x-model="boardFilters.onlyMe" @change="loadSpaceGrouped()" class="w-4 h-4 rounded border-white/40 bg-white/80 text-slate-700 focus:ring-0">
+                            Only me
+                        </label>
                     </div>
 
                     <div class="space-y-5 pt-2">
@@ -598,22 +631,26 @@
                         <p class="text-white/45 mb-1 text-xs">Status</p>
                         <div class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/8 border border-white/10">
                             <span class="w-2.5 h-2.5 rounded-full bg-[#f3ad1e]"></span>
-                            <select x-show="canEditTask(taskDetail)" x-model="taskDetail.status" @change="saveTaskStatus(taskDetail.status)" class="tis-modern-select text-sm focus:outline-none">
-                                <template x-for="s in statusSections" :key="`modal-status-${s.key}`">
-                                    <option class="text-slate-900" :value="s.key" x-text="s.label"></option>
-                                </template>
-                            </select>
-                            <span x-show="!canEditTask(taskDetail)" x-text="statusLabel(taskDetail?.status)"></span>
+                            <template x-if="taskDetail && canEditTask(taskDetail)">
+                                <select x-model="taskDetail.status" @change="saveTaskStatus(taskDetail.status)" class="tis-modern-select text-sm focus:outline-none">
+                                    <template x-for="s in statusSections" :key="`modal-status-${s.key}`">
+                                        <option class="text-slate-900" :value="s.key" x-text="s.label"></option>
+                                    </template>
+                                </select>
+                            </template>
+                            <span x-show="!taskDetail || !canEditTask(taskDetail)" x-text="statusLabel(taskDetail?.status)"></span>
                         </div>
                     </div>
                     <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
                         <p class="text-white/45 mb-1 text-xs">Prioritet</p>
-                        <select x-show="canEditTask(taskDetail)" x-model="taskDetail.priority" @change="saveTaskPriority(taskDetail.priority)" class="tis-modern-select w-full font-medium focus:outline-none">
+                        <template x-if="taskDetail && canEditTask(taskDetail)">
+                        <select x-model="taskDetail.priority" @change="saveTaskPriority(taskDetail.priority)" class="tis-modern-select w-full font-medium focus:outline-none">
                             <option class="text-slate-900" value="low">Aşağı</option>
                             <option class="text-slate-900" value="medium">Orta</option>
                             <option class="text-slate-900" value="high">Yüksək</option>
                             <option class="text-slate-900" value="urgent">Təcili</option>
                         </select>
+                        </template>
                         <p x-show="!canEditTask(taskDetail)" class="text-white font-medium" x-text="priorityLabel(taskDetail?.priority) || 'Orta'"></p>
                     </div>
                 </div>
@@ -987,6 +1024,59 @@
             </div>
         </div>
     </div>
+
+    <template x-teleport="body">
+    <div x-show="profileModalOpen" x-cloak x-transition.opacity class="fixed inset-0 bg-black/70 z-[80] flex items-center justify-center p-4">
+        <div @click.outside="closeProfileModal()" x-transition.scale class="w-full max-w-3xl max-h-[88vh] overflow-y-auto tis-modal-scroll rounded-[26px] bg-gradient-to-b from-[#233d82] to-[#182b5d] border border-white/10 shadow-tis text-white">
+            <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4">
+                <h2 class="text-lg font-semibold">İşçi profili</h2>
+                <button type="button" @click="closeProfileModal()" class="text-white/60 hover:text-white text-xl">&times;</button>
+            </div>
+            <div x-show="profileLoading" class="p-6 text-sm text-white/60">Profil yüklənir...</div>
+            <template x-if="profileDetail && !profileLoading">
+                <div class="p-6 space-y-5">
+                    <div class="flex items-center gap-4">
+                        <img :src="profileDetail.employee.avatar_url" class="w-20 h-20 rounded-2xl object-cover ring-2 ring-white/10">
+                        <div class="min-w-0">
+                            <h3 class="text-2xl font-semibold truncate" x-text="profileDetail.employee.full_name"></h3>
+                            <p class="text-sm text-white/60 truncate" x-text="profileDetail.employee.position || 'Vəzifə qeyd olunmayıb'"></p>
+                            <p class="text-sm text-white/50 truncate" x-text="profileDetail.employee.department?.name || 'Departament yoxdur'"></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
+                        <div class="rounded-2xl bg-white/7 border border-white/10 p-3"><p class="text-xs text-white/45">Ümumi</p><b x-text="profileDetail.task_stats.total"></b></div>
+                        <div class="rounded-2xl bg-white/7 border border-white/10 p-3"><p class="text-xs text-white/45">Görüləcək</p><b x-text="profileDetail.task_stats.todo"></b></div>
+                        <div class="rounded-2xl bg-white/7 border border-white/10 p-3"><p class="text-xs text-white/45">İcra</p><b x-text="profileDetail.task_stats.in_progress"></b></div>
+                        <div class="rounded-2xl bg-white/7 border border-white/10 p-3"><p class="text-xs text-white/45">Gözləyir</p><b x-text="profileDetail.task_stats.waiting_for_approve"></b></div>
+                        <div class="rounded-2xl bg-white/7 border border-white/10 p-3"><p class="text-xs text-white/45">Bitib</p><b x-text="profileDetail.task_stats.completed"></b></div>
+                        <div class="rounded-2xl bg-white/7 border border-white/10 p-3"><p class="text-xs text-white/45">Ləğv</p><b x-text="profileDetail.task_stats.canceled"></b></div>
+                    </div>
+
+                    <div class="rounded-2xl bg-white/7 border border-white/10 p-4">
+                        <h4 class="font-semibold mb-3">Space üzvlükləri</h4>
+                        <div class="space-y-2">
+                            <template x-for="space in profileDetail.spaces" :key="'profile-space-' + space.id">
+                                <div class="flex items-center justify-between gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-3">
+                                    <div class="min-w-0">
+                                        <p class="font-medium truncate" x-text="space.name"></p>
+                                        <p class="text-xs text-white/45" x-text="(space.is_manager ? 'Rəhbər' : (space.space_role || 'Üzv')) + ' · ' + (space.tasks_count || 0) + ' tapşırıq · İcra ' + (space.in_progress_count || 0) + ' · Gözləyir ' + (space.waiting_count || 0)"></p>
+                                    </div>
+                                    <button type="button"
+                                            x-show="canManageMembers && Number(space.id) === Number(spaceId) && Number(profileDetail.employee.id) !== Number(AUTH_USER.id)"
+                                            @click="removeSpaceMember(profileDetail.employee.id)"
+                                            class="px-3 py-2 rounded-xl bg-[#d9364f] hover:bg-[#c92d45] text-xs font-semibold">
+                                        Üzvlükdən çıxart
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+    </template>
 </div>
 </div>
 </div>
@@ -1002,6 +1092,11 @@ function spaceHub(spaceId) {
         memberSearch: '',
         memberRole: 'employee',
         memberResults: [],
+        membersLoading: false,
+        members: [],
+        profileModalOpen: false,
+        profileLoading: false,
+        profileDetail: null,
         boardsLoading: false,
         boards: [],
         showCreateBoardModal: false,
@@ -1023,7 +1118,7 @@ function spaceHub(spaceId) {
         myTasksLoading: false,
         myTasks: [],
         spaceGrouped: {},
-        boardFilters: { days: '7', overdue: false },
+        boardFilters: { priority: '', status: '', dueSoon: false, overdue: false, dateFrom: '', dateTo: '', onlyMe: true },
         draggedTask: null,
         dragOverStatus: null,
         statusUpdating: false,
@@ -1066,7 +1161,7 @@ newChecklistItem: { title: '' },
                 if (taskId) this.openTaskModal(taskId);
             });
             await this.loadSpacePermissions();
-            await Promise.all([this.loadBoards(), this.loadMyTasks(), this.loadSpaceGrouped()]);
+            await Promise.all([this.loadMembers(), this.loadBoards(), this.loadMyTasks(), this.loadSpaceGrouped()]);
         },
 
         async loadSpacePermissions() {
@@ -1104,10 +1199,53 @@ newChecklistItem: { title: '' },
                 });
                 this.memberSearch = '';
                 this.memberResults = [];
+                await this.loadMembers();
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Üzv əlavə edildi', type:'success' } }));
-                window.location.reload();
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Üzv əlavə olunmadı', type:'error' } }));
+            }
+        },
+
+        async loadMembers() {
+            this.membersLoading = true;
+            try {
+                const res = await api('GET', `/spaces/${this.spaceId}/members`);
+                this.members = res.data || [];
+            } catch(e) {
+                this.members = [];
+            } finally {
+                this.membersLoading = false;
+            }
+        },
+
+        async openProfileModal(employeeId) {
+            this.profileModalOpen = true;
+            this.profileLoading = true;
+            this.profileDetail = null;
+            try {
+                this.profileDetail = await api('GET', `/employees/${employeeId}/profile`);
+            } catch(e) {
+                this.profileModalOpen = false;
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Profil açılmadı', type:'error' } }));
+            } finally {
+                this.profileLoading = false;
+            }
+        },
+
+        closeProfileModal() {
+            this.profileModalOpen = false;
+            this.profileDetail = null;
+        },
+
+        async removeSpaceMember(employeeId) {
+            if (!employeeId || !this.canManageMembers) return;
+            try {
+                await api('DELETE', `/spaces/${this.spaceId}/members/${employeeId}`);
+                await this.loadMembers();
+                this.closeProfileModal();
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Üzv space-dən çıxarıldı', type:'success' } }));
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Üzv çıxarılmadı', type:'error' } }));
             }
         },
 
@@ -1138,7 +1276,13 @@ newChecklistItem: { title: '' },
         async loadSpaceGrouped() {
             try {
                 const params = new URLSearchParams({ grouped: true });
+                if (this.boardFilters.priority) params.set('priority', this.boardFilters.priority);
+                if (this.boardFilters.status) params.set('status', this.boardFilters.status);
+                if (this.boardFilters.dueSoon) params.set('due_soon', 1);
                 if (this.boardFilters.overdue) params.set('overdue', 1);
+                if (this.boardFilters.dateFrom) params.set('due_date_from', this.boardFilters.dateFrom);
+                if (this.boardFilters.dateTo) params.set('due_date_to', this.boardFilters.dateTo);
+                if (this.boardFilters.onlyMe && AUTH_USER?.id) params.set('assignee_id', AUTH_USER.id);
                 const data = await api('GET', `/spaces/${this.spaceId}/tasks?${params}`);
                 this.spaceGrouped = data || {};
             } catch(e) {
@@ -1148,7 +1292,13 @@ newChecklistItem: { title: '' },
 
         exportTasks() {
             const params = new URLSearchParams();
+            if (this.boardFilters.priority) params.set('priority', this.boardFilters.priority);
+            if (this.boardFilters.status) params.set('status', this.boardFilters.status);
+            if (this.boardFilters.dueSoon) params.set('due_soon', 1);
             if (this.boardFilters.overdue) params.set('overdue', 1);
+            if (this.boardFilters.dateFrom) params.set('due_date_from', this.boardFilters.dateFrom);
+            if (this.boardFilters.dateTo) params.set('due_date_to', this.boardFilters.dateTo);
+            if (this.boardFilters.onlyMe && AUTH_USER?.id) params.set('assignee_id', AUTH_USER.id);
             window.location.href = `/api/spaces/${this.spaceId}/tasks/export?${params.toString()}`;
         },
 

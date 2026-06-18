@@ -118,6 +118,7 @@ class DashboardController extends Controller
         $groupedTasks = $tasks
             ->groupBy('status')
             ->map(fn ($group) => TaskResource::collection($group)->resolve($request));
+
         $executiveTasks = Task::query()
             ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
             ->withCount(['subtasks', 'attachments', 'allComments as comments_count'])
