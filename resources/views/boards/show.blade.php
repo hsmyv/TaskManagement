@@ -583,6 +583,25 @@
                             <div x-show="editingTaskDates" class="space-y-3"><input type="date" x-model="taskDateForm.start_date" class="w-full h-11 rounded-xl px-4 tis-input"><input type="date" x-model="taskDateForm.due_date" class="w-full h-11 rounded-xl px-4 tis-input"><div class="flex justify-end gap-2"><button @click="editingTaskDates = false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button><button @click="saveTaskDates()" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Saxla</button></div></div>
                         </div>
                     </div>
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4" x-show="taskDetail">
+                        <h3 class="text-base font-semibold">Köməkçi və nəzarətçi əməkdaşlar</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="space-y-2">
+                                <p class="text-xs text-white/45">Köməkçilər</p>
+                                <template x-if="!(taskDetail?.helpers || []).length"><div class="text-sm text-white/55">Köməkçi seçilməyib</div></template>
+                                <template x-for="person in (taskDetail?.helpers || [])" :key="`board-detail-helper-${person.id}`">
+                                    <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5"><img :src="person.avatar_url || defaultAvatar" class="w-9 h-9 rounded-full object-cover"><div class="min-w-0"><p class="text-sm font-medium truncate" x-text="person.full_name"></p><p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p></div></div>
+                                </template>
+                            </div>
+                            <div class="space-y-2">
+                                <p class="text-xs text-white/45">Nəzarətçilər</p>
+                                <template x-if="!(taskDetail?.supervisors || []).length"><div class="text-sm text-white/55">Nəzarətçi seçilməyib</div></template>
+                                <template x-for="person in (taskDetail?.supervisors || [])" :key="`board-detail-supervisor-${person.id}`">
+                                    <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5"><img :src="person.avatar_url || defaultAvatar" class="w-9 h-9 rounded-full object-cover"><div class="min-w-0"><p class="text-sm font-medium truncate" x-text="person.full_name"></p><p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p></div></div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                     <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3"><div class="flex items-center justify-between"><h3 class="text-base font-semibold">Alt tapşırıqlar</h3><button x-show="canEditTask(taskDetail)" @click="showInlineSubtaskForm = !showInlineSubtaskForm" class="text-[11px] px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/10">+ Alt tapşırıq</button></div>
                         <div x-show="showInlineSubtaskForm" class="rounded-2xl bg-[#163067] border border-white/10 p-3 space-y-3"><input type="text" x-model="newInlineSubtask.title" placeholder="Alt tapşırıq adı" class="w-full h-11 rounded-xl px-4 tis-input"><input type="date" x-model="newInlineSubtask.due_date" class="w-full h-11 rounded-xl px-4 tis-input"><div x-data="employeePicker(spaceId)" x-init="init()"><input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true" placeholder="Məsul şəxs axtar..." class="w-full h-11 rounded-xl px-4 tis-input"><div class="flex flex-wrap gap-2 mt-2"><template x-for="emp in selected" :key="`new-sub-assignee-${emp.id}`"><span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10"><img :src="emp.avatar_url || defaultAvatar" class="w-4 h-4 rounded-full object-cover"><span x-text="emp.full_name"></span><button type="button" @click="remove(emp.id)" class="hover:text-red-300">x</button></span></template></div><div x-show="open && results.length > 0" @click.outside="open=false" class="relative z-10 mt-2 bg-[#1d315f] border border-white/10 rounded-2xl shadow-2xl max-h-40 overflow-y-auto tis-modal-scroll"><template x-for="emp in results" :key="`new-sub-result-${emp.id}`"><button type="button" @click="select(emp)" class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 text-left text-sm"><img :src="emp.avatar_url || defaultAvatar" class="w-7 h-7 rounded-full object-cover"><div><p class="font-medium text-white" x-text="emp.full_name"></p><p class="text-xs text-white/45" x-text="emp.position || emp.email || ''"></p></div></button></template></div><span x-effect="newInlineSubtask.assignee_ids = selected.map(e => e.id)"></span></div><div class="flex justify-end gap-2"><button @click="showInlineSubtaskForm = false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button><button @click="createInlineSubtask()" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Əlavə et</button></div></div>
                         <div class="space-y-2 max-h-48 overflow-y-auto pr-1 tis-modal-scroll"><template x-for="sub in (taskDetail?.subtasks || [])" :key="`sub-new-${sub.id}`"><div class="rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 space-y-3" x-init="prepareSubtaskEdit(sub)"><div class="flex items-center gap-3"><span class="w-2.5 h-2.5 rounded-full shrink-0" :class="sub.status === 'completed' ? 'bg-[#22d34f]' : 'bg-white/50'"></span><div class="flex-1 min-w-0"><p class="text-sm truncate" x-text="sub.title"></p><p class="text-[11px] text-white/45" x-text="sub.due_date ? formatDate(sub.due_date) : ''"></p></div><div class="flex -space-x-2 shrink-0" x-show="(sub.assignees || []).length"><template x-for="person in (sub.assignees || [])" :key="`sub-new-assignee-${sub.id}-${person.id}`"><img :src="person.avatar_url || defaultAvatar" :title="person.full_name" class="w-7 h-7 rounded-full object-cover ring-2 ring-[#163067]"></template></div><button x-show="canEditSubtask(sub) && sub.status !== 'completed'" @click="completeSubtask(sub)" class="px-3 py-1.5 rounded-lg bg-[#22d34f]/20 text-[#8effa9] border border-[#22d34f]/30 text-xs">Təsdiqlə</button><button x-show="canEditSubtask(sub)" @click="sub.editing = !sub.editing; prepareSubtaskEdit(sub)" class="px-3 py-1.5 rounded-lg bg-white/8 hover:bg-white/12 text-xs">Redaktə et</button></div><div x-show="sub.editing" class="space-y-3 rounded-xl bg-[#10285a] border border-white/10 p-3"><input type="text" x-model="sub.edit.title" class="w-full h-10 rounded-xl px-4 tis-input"><input type="date" x-model="sub.edit.due_date" class="w-full h-10 rounded-xl px-4 tis-input"><div x-data="employeePicker(spaceId)" x-init="init(sub.assignees || [])"><input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true" placeholder="Məsul şəxs axtar..." class="w-full h-10 rounded-xl px-4 tis-input"><span x-effect="if (sub.edit) sub.edit.assignee_ids = selected.map(e => e.id)"></span></div><div class="flex justify-end gap-2"><button @click="sub.editing = false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button><button @click="saveSubtask(sub)" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Saxla</button></div></div></div></template><div x-show="!(taskDetail?.subtasks || []).length" class="text-sm text-white/55">Alt tapşırıq yoxdur</div></div>
@@ -736,6 +755,26 @@
                             <div class="flex justify-end gap-2">
                                 <button @click="editingTaskAssignees = false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button>
                                 <button @click="saveTaskAssignees()" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Saxla</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4" x-show="taskDetail">
+                        <h3 class="text-base font-semibold">Köməkçi və nəzarətçi əməkdaşlar</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="space-y-2">
+                                <p class="text-xs text-white/45">Köməkçilər</p>
+                                <template x-if="!(taskDetail?.helpers || []).length"><div class="text-sm text-white/55">Köməkçi seçilməyib</div></template>
+                                <template x-for="person in (taskDetail?.helpers || [])" :key="`board-legacy-helper-${person.id}`">
+                                    <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5"><img :src="person.avatar_url || defaultAvatar" class="w-9 h-9 rounded-full object-cover"><div class="min-w-0"><p class="text-sm font-medium truncate" x-text="person.full_name"></p><p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p></div></div>
+                                </template>
+                            </div>
+                            <div class="space-y-2">
+                                <p class="text-xs text-white/45">Nəzarətçilər</p>
+                                <template x-if="!(taskDetail?.supervisors || []).length"><div class="text-sm text-white/55">Nəzarətçi seçilməyib</div></template>
+                                <template x-for="person in (taskDetail?.supervisors || [])" :key="`board-legacy-supervisor-${person.id}`">
+                                    <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5"><img :src="person.avatar_url || defaultAvatar" class="w-9 h-9 rounded-full object-cover"><div class="min-w-0"><p class="text-sm font-medium truncate" x-text="person.full_name"></p><p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p></div></div>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -1185,7 +1224,7 @@ function boardHub(spaceId, boardId) {
                 return;
             }
             try {
-                const data = await api('GET', `/employees/search?q=${encodeURIComponent(this.newTaskSubtaskAssigneeSearch)}&space_id=${this.spaceId}`);
+                const data = await api('GET', `/employees/search?q=${encodeURIComponent(this.newTaskSubtaskAssigneeSearch)}`);
                 const arr = Array.isArray(data) ? data : (data?.data || []);
                 const selectedIds = this.newTaskSubtaskAssignees.map(person => person.id);
                 this.newTaskSubtaskAssigneeResults = arr.filter(person => !selectedIds.includes(person.id));
@@ -1425,7 +1464,6 @@ function boardHub(spaceId, boardId) {
             }
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.taskAssigneeSearch)}`;
-                if (this.spaceId) url += `&space_id=${this.spaceId}`;
                 const data = await api('GET', url);
                 const arr = Array.isArray(data) ? data : (data?.data || []);
                 const ids = this.selectedTaskAssignees.map(e => e.id);
@@ -1801,8 +1839,6 @@ function employeePicker(spaceId = null) {
             }
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.search)}`;
-                const currentSpaceId = spaceId || this.spaceId;
-                if (currentSpaceId) url += `&space_id=${currentSpaceId}`;
                 const data = await api('GET', url);
                 const arr = Array.isArray(data) ? data : (data?.data || []);
                 this.results = this.single ? arr : arr.filter(e => !this.selected.find(s => s.id === e.id));

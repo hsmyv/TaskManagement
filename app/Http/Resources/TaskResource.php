@@ -39,6 +39,8 @@ class TaskResource extends JsonResource
             'creator'       => new EmployeeResource($this->whenLoaded('creator')),
             'assigner'      => new EmployeeResource($this->whenLoaded('assigner')),
             'assignees'     => EmployeeResource::collection($this->whenLoaded('assignees')),
+            'helpers'       => EmployeeResource::collection($this->whenLoaded('helpers')),
+            'supervisors'   => EmployeeResource::collection($this->whenLoaded('supervisors')),
             'subtasks'      => TaskResource::collection($this->whenLoaded('subtasks')),
             'subtasks_count'=> $this->whenCounted('subtasks'),
             'completed_subtasks_count' => $this->whenCounted('completed_subtasks'),

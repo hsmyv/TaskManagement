@@ -24,7 +24,7 @@ class TaskController extends Controller
         $query = Task::query()
             ->where('space_id', $space->id)
             ->whereNull('parent_task_id')
-            ->with(['assignees', 'creator', 'assigner'])
+            ->with(['assignees', 'helpers', 'supervisors', 'creator', 'assigner'])
             ->withCount([
                 'subtasks',
                 'attachments',
@@ -38,10 +38,14 @@ class TaskController extends Controller
                 $query->where('created_by', $employee->id)
                     ->orWhere('assigned_by', $employee->id)
                     ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id))
+                    ->orWhereHas('helpers', fn ($helpers) => $helpers->where('employees.id', $employee->id))
+                    ->orWhereHas('supervisors', fn ($supervisors) => $supervisors->where('employees.id', $employee->id))
                     ->orWhereHas('subtasks', function ($subtasks) use ($employee) {
                         $subtasks->where('created_by', $employee->id)
                             ->orWhere('assigned_by', $employee->id)
-                            ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id));
+                            ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id))
+                            ->orWhereHas('helpers', fn ($helpers) => $helpers->where('employees.id', $employee->id))
+                            ->orWhereHas('supervisors', fn ($supervisors) => $supervisors->where('employees.id', $employee->id));
                     });
             });
         }
@@ -65,8 +69,12 @@ class TaskController extends Controller
                 })
                     ->orWhere('assigned_by', $assigneeId)
                     ->orWhereHas('assignees', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('helpers', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('supervisors', fn($q) => $q->where('employees.id', $assigneeId))
                     ->orWhereHas('subtasks', fn($q) => $q->where('assigned_by', $assigneeId))
-                    ->orWhereHas('subtasks.assignees', fn($q) => $q->where('employees.id', $assigneeId));
+                    ->orWhereHas('subtasks.assignees', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('subtasks.helpers', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('subtasks.supervisors', fn($q) => $q->where('employees.id', $assigneeId));
             });
         }
         if ($request->filled('created_by')) {
@@ -119,7 +127,7 @@ class TaskController extends Controller
         $query = Task::query()
             ->where('space_id', $space->id)
             ->whereNull('parent_task_id')
-            ->with(['board', 'assignees', 'creator', 'assigner', 'subtasks', 'checklists'])
+            ->with(['board', 'assignees', 'helpers', 'supervisors', 'creator', 'assigner', 'subtasks', 'checklists'])
             ->withCount([
                 'subtasks',
                 'attachments',
@@ -146,8 +154,12 @@ class TaskController extends Controller
                 })
                     ->orWhere('assigned_by', $assigneeId)
                     ->orWhereHas('assignees', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('helpers', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('supervisors', fn($q) => $q->where('employees.id', $assigneeId))
                     ->orWhereHas('subtasks', fn($q) => $q->where('assigned_by', $assigneeId))
-                    ->orWhereHas('subtasks.assignees', fn($q) => $q->where('employees.id', $assigneeId));
+                    ->orWhereHas('subtasks.assignees', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('subtasks.helpers', fn($q) => $q->where('employees.id', $assigneeId))
+                    ->orWhereHas('subtasks.supervisors', fn($q) => $q->where('employees.id', $assigneeId));
             });
         }
         if ($request->filled('created_by')) {
@@ -181,7 +193,7 @@ class TaskController extends Controller
         return response()->streamDownload(function () use ($tasks) {
             echo '<html><head><meta charset="UTF-8"></head><body><table border="1">';
             echo '<tr>';
-            foreach (['Tapşırıq', 'Alt tapşırıqlar', 'Layihə', 'Status', 'Prioritet', 'Məsul şəxslər', 'Təyin edən', 'Yaradan', 'Başlama tarixi', 'Son tarix', 'İrəliləyiş', 'Yoxlama siyahısı', 'Gecikib'] as $heading) {
+            foreach (['Tapşırıq', 'Alt tapşırıqlar', 'Layihə', 'Status', 'Prioritet', 'Məsul şəxslər', 'Köməkçilər', 'Nəzarətçilər', 'Təyin edən', 'Yaradan', 'Başlama tarixi', 'Son tarix', 'İrəliləyiş', 'Yoxlama siyahısı', 'Gecikib'] as $heading) {
                 echo '<th>' . e($heading) . '</th>';
             }
             echo '</tr>';
@@ -189,6 +201,8 @@ class TaskController extends Controller
             foreach ($tasks as $task) {
                 $checklist = $task->checklist_progress;
                 $assignees = $task->assignees->pluck('full_name')->implode(', ');
+                $helpers = $task->helpers->pluck('full_name')->implode(', ');
+                $supervisors = $task->supervisors->pluck('full_name')->implode(', ');
                 $row = [
                     $task->title,
                     $task->subtasks->pluck('title')->implode(', '),
@@ -202,6 +216,8 @@ class TaskController extends Controller
                         default => $task->priority,
                     },
                     $assignees,
+                    $helpers,
+                    $supervisors,
                     $task->assigner?->full_name,
                     $task->creator?->full_name,
                     $task->start_date?->format('d.m.Y'),
@@ -239,6 +255,10 @@ class TaskController extends Controller
             'deadline_locked'  => 'nullable|boolean',
             'assignee_ids'     => 'nullable|array',
             'assignee_ids.*'   => 'exists:employees,id',
+            'helper_ids'       => 'nullable|array',
+            'helper_ids.*'     => 'exists:employees,id',
+            'supervisor_ids'   => 'nullable|array',
+            'supervisor_ids.*' => 'exists:employees,id',
             'assigned_by_id'   => 'nullable|exists:employees,id',
             'checklists'       => 'nullable|array',
             'checklists.*.title' => 'required|string|max:255',
@@ -246,7 +266,7 @@ class TaskController extends Controller
 
         $task = $this->taskService->createTask($space, $data, $request->user());
 
-        return response()->json(new TaskResource($task->load(['assignees', 'creator', 'space'])), 201);
+        return response()->json(new TaskResource($task->load(['assignees', 'helpers', 'supervisors', 'creator', 'space'])), 201);
     }
 
     public function show(Request $request, Task $task): JsonResponse
@@ -254,8 +274,8 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         $task->load([
-            'creator', 'assigner', 'assignees', 'space',
-            'subtasks.creator', 'subtasks.assignees', 'checklists.completedBy',
+            'creator', 'assigner', 'assignees', 'helpers', 'supervisors', 'space',
+            'subtasks.creator', 'subtasks.assignees', 'subtasks.helpers', 'subtasks.supervisors', 'checklists.completedBy',
             'attachments.uploader', 'comments.author', 'comments.replies.author',
             'statusHistory.changedBy',
         ])->loadCount([
@@ -284,6 +304,10 @@ class TaskController extends Controller
             'deadline_locked'  => 'sometimes|boolean',
             'assignee_ids'     => 'nullable|array',
             'assignee_ids.*'   => 'exists:employees,id',
+            'helper_ids'       => 'nullable|array',
+            'helper_ids.*'     => 'exists:employees,id',
+            'supervisor_ids'   => 'nullable|array',
+            'supervisor_ids.*' => 'exists:employees,id',
         ]);
 
         $task = $this->taskService->updateTask($task, $data, $request->user());

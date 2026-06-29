@@ -20,13 +20,18 @@ class TaskPolicy
             return true;
         }
 
-        $isDirectParticipant = $task->created_by === $employee->id || $task->isAssignee($employee);
+        $isDirectParticipant = $task->created_by === $employee->id
+            || $task->isAssignee($employee)
+            || $task->isHelper($employee)
+            || $task->isSupervisor($employee);
         $isSubtaskParticipant = $task->isSubtask()
             ? $isDirectParticipant
             : $task->subtasks()
                 ->where(function ($query) use ($employee) {
                     $query->where('created_by', $employee->id)
-                        ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id));
+                        ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id))
+                        ->orWhereHas('helpers', fn ($helpers) => $helpers->where('employees.id', $employee->id))
+                        ->orWhereHas('supervisors', fn ($supervisors) => $supervisors->where('employees.id', $employee->id));
                 })
                 ->exists();
 

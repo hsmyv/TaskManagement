@@ -41,6 +41,14 @@ class TaskService
                 $this->syncAssignees($task, $data['assignee_ids'], $creator);
             }
 
+            if (array_key_exists('helper_ids', $data)) {
+                $this->syncHelpers($task, $data['helper_ids'] ?? [], $creator);
+            }
+
+            if (array_key_exists('supervisor_ids', $data)) {
+                $this->syncSupervisors($task, $data['supervisor_ids'] ?? [], $creator);
+            }
+
             if (!empty($data['checklists'])) {
                 foreach ($data['checklists'] as $i => $item) {
                     $task->checklists()->create(['title' => $item['title'], 'order' => $i]);
@@ -55,7 +63,7 @@ class TaskService
                 'changed_at'  => now(),
             ]);
 
-            $task->load(['creator', 'assigner', 'assignees', 'space']);
+            $task->load(['creator', 'assigner', 'assignees', 'helpers', 'supervisors', 'space']);
             $this->notificationService->notifyTaskCreated($task, $creator);
 
             return $task;
@@ -100,7 +108,15 @@ class TaskService
                 $this->syncAssignees($task, $data['assignee_ids'], $updater);
             }
 
-            $task->load(['creator', 'assigner', 'assignees', 'space']);
+            if (array_key_exists('helper_ids', $data)) {
+                $this->syncHelpers($task, $data['helper_ids'] ?? [], $updater);
+            }
+
+            if (array_key_exists('supervisor_ids', $data)) {
+                $this->syncSupervisors($task, $data['supervisor_ids'] ?? [], $updater);
+            }
+
+            $task->load(['creator', 'assigner', 'assignees', 'helpers', 'supervisors', 'space']);
 
             if (!empty($changes)) {
                 $this->notificationService->notifyTaskUpdated($task, $updater, $changes);
@@ -198,6 +214,29 @@ class TaskService
         }
         $task->assignees()->sync($syncData);
         $this->notificationService->notifyAssigneesChanged($task, $assigner);
+    }
+
+    public function syncHelpers(Task $task, array $employeeIds, Employee $adder): void
+    {
+        $task->helpers()->sync($this->collaboratorSyncData($employeeIds, $adder));
+    }
+
+    public function syncSupervisors(Task $task, array $employeeIds, Employee $adder): void
+    {
+        $task->supervisors()->sync($this->collaboratorSyncData($employeeIds, $adder));
+    }
+
+    private function collaboratorSyncData(array $employeeIds, Employee $adder): array
+    {
+        $syncData = [];
+        foreach (array_unique($employeeIds) as $employeeId) {
+            $syncData[$employeeId] = [
+                'added_by' => $adder->id,
+                'added_at' => now(),
+            ];
+        }
+
+        return $syncData;
     }
 
     public function updateOrder(Task $task, string $newStatus, Employee $mover): Task

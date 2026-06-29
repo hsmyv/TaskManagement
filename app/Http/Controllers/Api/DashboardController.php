@@ -20,16 +20,20 @@ class DashboardController extends Controller
             $query->where('created_by', $employee->id)
                 ->orWhere('assigned_by', $employee->id)
                 ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id))
+                ->orWhereHas('helpers', fn ($helpers) => $helpers->where('employees.id', $employee->id))
+                ->orWhereHas('supervisors', fn ($supervisors) => $supervisors->where('employees.id', $employee->id))
                 ->orWhereHas('subtasks', function ($subtasks) use ($employee) {
                     $subtasks->where('created_by', $employee->id)
                         ->orWhere('assigned_by', $employee->id)
-                        ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id));
+                        ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id))
+                        ->orWhereHas('helpers', fn ($helpers) => $helpers->where('employees.id', $employee->id))
+                        ->orWhereHas('supervisors', fn ($supervisors) => $supervisors->where('employees.id', $employee->id));
                 });
         };
 
         // ── Yalnız mənə aid tapşırıqlar (yaratdıqlarım + assign olunduqlarım) ──
         $myTasks = Task::query()
-            ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
+            ->with(['space.department', 'board', 'assignees', 'helpers', 'supervisors', 'creator', 'assigner'])
             ->withCount('subtasks')
             ->whereNull('parent_task_id')
             ->where($onlyEmployeeTasks)
@@ -64,10 +68,22 @@ class DashboardController extends Controller
                                     ->orWhereHas('assignees', function ($a) use ($employee) {
                                         $a->where('employees.id', $employee->id);
                                     })
+                                    ->orWhereHas('helpers', function ($h) use ($employee) {
+                                        $h->where('employees.id', $employee->id);
+                                    })
+                                    ->orWhereHas('supervisors', function ($supervisors) use ($employee) {
+                                        $supervisors->where('employees.id', $employee->id);
+                                    })
                                     ->orWhereHas('subtasks', function ($s) use ($employee) {
                                         $s->where('created_by', $employee->id)
                                           ->orWhereHas('assignees', function ($a) use ($employee) {
                                               $a->where('employees.id', $employee->id);
+                                          })
+                                          ->orWhereHas('helpers', function ($h) use ($employee) {
+                                              $h->where('employees.id', $employee->id);
+                                          })
+                                          ->orWhereHas('supervisors', function ($supervisors) use ($employee) {
+                                              $supervisors->where('employees.id', $employee->id);
                                           });
                                     });
                               });
@@ -80,7 +96,7 @@ class DashboardController extends Controller
         $useAllTasks = $request->string('scope')->toString() === 'all' && $employee->hasGlobalAccess();
 
         $taskQuery = Task::query()
-            ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
+            ->with(['space.department', 'board', 'assignees', 'helpers', 'supervisors', 'creator', 'assigner'])
             ->withCount(['subtasks', 'attachments', 'allComments as comments_count'])
             ->whereNull('parent_task_id');
 
@@ -120,7 +136,7 @@ class DashboardController extends Controller
             ->map(fn ($group) => TaskResource::collection($group)->resolve($request));
 
         $executiveTasks = Task::query()
-            ->with(['space.department', 'board', 'assignees', 'creator', 'assigner'])
+            ->with(['space.department', 'board', 'assignees', 'helpers', 'supervisors', 'creator', 'assigner'])
             ->withCount(['subtasks', 'attachments', 'allComments as comments_count'])
             ->whereNull('parent_task_id')
             ->where(function ($query) use ($employee) {

@@ -389,7 +389,7 @@
                     <div class="relative mb-3">
                         <input type="text"
                                x-model="assigneeSearch"
-                               @input="showAssigneeSuggestions = assigneeSearch.length > 1"
+                               @input.debounce.300ms="searchAssigneeEmployees()"
                                @keydown.escape="showAssigneeSuggestions = false"
                                placeholder="Əməkdaş axtar..."
                                class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -427,6 +427,38 @@
                                 class="flex-1 text-sm text-slate-600 py-2 rounded-lg hover:bg-slate-100 transition-colors">
                             Ləğv
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                <h3 class="font-semibold text-slate-800 text-sm mb-4">Köməkçi və nəzarətçi əməkdaşlar</h3>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <p class="text-xs text-slate-400 mb-2">Köməkçilər</p>
+                        <template x-for="person in (task.helpers || [])" :key="'task-helper-' + person.id">
+                            <div class="flex items-center gap-3 mb-2">
+                                <img :src="person.avatar_url" class="w-8 h-8 rounded-full object-cover">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-slate-800 truncate" x-text="person.full_name"></p>
+                                    <p class="text-xs text-slate-400 truncate" x-text="person.position || person.email || ''"></p>
+                                </div>
+                            </div>
+                        </template>
+                        <p x-show="!(task.helpers || []).length" class="text-sm text-slate-400 italic">Köməkçi seçilməyib</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 mb-2">Nəzarətçilər</p>
+                        <template x-for="person in (task.supervisors || [])" :key="'task-supervisor-' + person.id">
+                            <div class="flex items-center gap-3 mb-2">
+                                <img :src="person.avatar_url" class="w-8 h-8 rounded-full object-cover">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium text-slate-800 truncate" x-text="person.full_name"></p>
+                                    <p class="text-xs text-slate-400 truncate" x-text="person.position || person.email || ''"></p>
+                                </div>
+                            </div>
+                        </template>
+                        <p x-show="!(task.supervisors || []).length" class="text-sm text-slate-400 italic">Nəzarətçi seçilməyib</p>
                     </div>
                 </div>
             </div>
@@ -504,7 +536,8 @@ function taskDetail(taskId) {
         selectedAssignees:      [],
         assigneeSearch:         '',
         showAssigneeSuggestions:false,
-        spaceEmployees:         [],   // space üzvləri
+        spaceEmployees:         [],
+        assigneeSuggestions:    [],
 
         statuses: [
             { value:'todo',                label:'Görüləcək',       icon:'📋' },
@@ -518,20 +551,6 @@ function taskDetail(taskId) {
             const items = this.task.checklists || [];
             if (!items.length) return 0;
             return Math.round(items.filter(c => c.is_done).length / items.length * 100);
-        },
-
-        // Artıq seçilməyənlər + axtarış filteri
-        get assigneeSuggestions() {
-            if (this.assigneeSearch.length < 2) return [];
-            const selectedIds = this.selectedAssignees.map(e => e.id);
-            const q = this.assigneeSearch.toLowerCase();
-            return this.spaceEmployees
-                .filter(e => !selectedIds.includes(e.id))
-                .filter(e =>
-                    e.full_name.toLowerCase().includes(q) ||
-                    (e.position ?? '').toLowerCase().includes(q)
-                )
-                .slice(0, 8);
         },
 
         async init() {
@@ -600,14 +619,27 @@ function taskDetail(taskId) {
         async openAssignees() {
             this.selectedAssignees       = [...(this.task.assignees ?? [])];
             this.assigneeSearch          = '';
+            this.assigneeSuggestions     = [];
             this.showAssigneeSuggestions = false;
             this.editingAssignees        = true;
+        },
 
-            // Space üzvlərini yüklə (bir dəfə)
-            if (this.spaceEmployees.length === 0 && this.task.space_id) {
-                try {
-                    this.spaceEmployees = await api('GET', `/spaces/${this.task.space_id}/members`);
-                } catch(e) {}
+        async searchAssigneeEmployees() {
+            if (this.assigneeSearch.length < 2) {
+                this.assigneeSuggestions = [];
+                this.showAssigneeSuggestions = false;
+                return;
+            }
+
+            try {
+                const data = await api('GET', `/employees/search?q=${encodeURIComponent(this.assigneeSearch)}`);
+                const employees = Array.isArray(data) ? data : (data?.data || []);
+                const selectedIds = this.selectedAssignees.map(e => e.id);
+                this.assigneeSuggestions = employees.filter(e => !selectedIds.includes(e.id));
+                this.showAssigneeSuggestions = this.assigneeSuggestions.length > 0;
+            } catch(e) {
+                this.assigneeSuggestions = [];
+                this.showAssigneeSuggestions = false;
             }
         },
 

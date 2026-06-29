@@ -65,7 +65,9 @@ class SpacePolicy
             ->whereNotNull('parent_task_id')
             ->where(function ($query) use ($employee) {
                 $query->where('created_by', $employee->id)
-                    ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id));
+                    ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employee->id))
+                    ->orWhereHas('helpers', fn ($helpers) => $helpers->where('employees.id', $employee->id))
+                    ->orWhereHas('supervisors', fn ($supervisors) => $supervisors->where('employees.id', $employee->id));
             })
             ->exists();
     }

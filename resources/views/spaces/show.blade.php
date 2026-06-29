@@ -761,6 +761,42 @@
                     </div>
                 </div>
 
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4" x-show="taskDetail">
+                    <h3 class="text-base font-semibold">Köməkçi və nəzarətçi əməkdaşlar</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="space-y-2">
+                            <p class="text-xs text-white/45">Köməkçilər</p>
+                            <template x-if="!(taskDetail?.helpers || []).length">
+                                <div class="text-sm text-white/55">Köməkçi seçilməyib</div>
+                            </template>
+                            <template x-for="person in (taskDetail?.helpers || [])" :key="`space-detail-helper-${person.id}`">
+                                <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                                    <img :src="person.avatar_url || defaultAvatar" class="w-9 h-9 rounded-full object-cover">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium truncate" x-text="person.full_name"></p>
+                                        <p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="space-y-2">
+                            <p class="text-xs text-white/45">Nəzarətçilər</p>
+                            <template x-if="!(taskDetail?.supervisors || []).length">
+                                <div class="text-sm text-white/55">Nəzarətçi seçilməyib</div>
+                            </template>
+                            <template x-for="person in (taskDetail?.supervisors || [])" :key="`space-detail-supervisor-${person.id}`">
+                                <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                                    <img :src="person.avatar_url || defaultAvatar" class="w-9 h-9 rounded-full object-cover">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium truncate" x-text="person.full_name"></p>
+                                        <p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
                     <div class="flex items-center justify-between">
                         <h3 class="text-base font-semibold">Alt tapşırıqlar</h3>
@@ -1550,7 +1586,7 @@ newChecklistItem: { title: '' },
                 return;
             }
             try {
-                const data = await api('GET', `/employees/search?q=${encodeURIComponent(this.newTaskSubtaskAssigneeSearch)}&space_id=${this.spaceId}`);
+                const data = await api('GET', `/employees/search?q=${encodeURIComponent(this.newTaskSubtaskAssigneeSearch)}`);
                 const arr = Array.isArray(data) ? data : (data?.data || []);
                 const selectedIds = this.newTaskSubtaskAssignees.map(person => person.id);
                 this.newTaskSubtaskAssigneeResults = arr.filter(person => !selectedIds.includes(person.id));
@@ -1829,7 +1865,6 @@ taskProgress(task) {
             if ((this.taskAssigneeSearch || '').length < 1) { this.taskAssigneeResults = []; return; }
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.taskAssigneeSearch)}`;
-                if (this.spaceId) url += `&space_id=${this.spaceId}`;
                 const data = await api('GET', url);
                 const arr = Array.isArray(data) ? data : (data?.data || []);
                 const ids = this.selectedTaskAssignees.map(e => e.id);
@@ -2108,8 +2143,6 @@ function employeePicker(spaceId = null) {
 
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.search)}`;
-                if (this.spaceId) url += `&space_id=${this.spaceId}`;
-
                 const data = await api('GET', url);
                 const arr  = Array.isArray(data) ? data : (data?.data || []);
 

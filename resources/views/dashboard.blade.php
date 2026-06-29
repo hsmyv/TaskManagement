@@ -208,7 +208,7 @@
 
                 <div x-data="employeePicker()" x-init="init()">
                     <label class="block text-sm font-medium text-white/80 mb-1">Təyinatçı</label>
-                    <input type="text" x-model="search" @input.debounce.300ms="searchEmployees(newTask.space_id)" @focus="open=true" placeholder="Ad ilə axtarın..." class="w-full h-12 rounded-xl px-4 tis-input">
+                    <input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true" placeholder="Ad ilə axtarın..." class="w-full h-12 rounded-xl px-4 tis-input">
                     <div class="flex flex-wrap gap-2 mt-3">
                         <template x-for="emp in selected" :key="emp.id">
                             <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-2 rounded-full border border-white/10">
@@ -230,6 +230,60 @@
                         </template>
                     </div>
                     <span x-effect="newTask.assignee_ids = selected.map(e => e.id)"></span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div x-data="employeePicker()" x-init="init()">
+                        <label class="block text-sm font-medium text-white/80 mb-1">Köməkçilər</label>
+                        <input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true" placeholder="Köməkçi əməkdaş axtar..." class="w-full h-12 rounded-xl px-4 tis-input">
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <template x-for="emp in selected" :key="`new-helper-${emp.id}`">
+                                <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-2 rounded-full border border-white/10">
+                                    <img :src="emp.avatar_url" class="w-5 h-5 rounded-full object-cover">
+                                    <span x-text="emp.full_name"></span>
+                                    <button type="button" @click="remove(emp.id)" class="hover:text-red-300">x</button>
+                                </span>
+                            </template>
+                        </div>
+                        <div x-show="open && results.length > 0" @click.outside="open=false" class="relative z-10 mt-2 bg-[#1d315f] border border-white/10 rounded-2xl shadow-2xl max-h-48 overflow-y-auto">
+                            <template x-for="emp in results" :key="`new-helper-result-${emp.id}`">
+                                <button type="button" @click="select(emp)" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left text-sm">
+                                    <img :src="emp.avatar_url" class="w-8 h-8 rounded-full object-cover">
+                                    <div>
+                                        <p class="font-medium text-white" x-text="emp.full_name"></p>
+                                        <p class="text-xs text-white/45" x-text="emp.position || emp.email || ''"></p>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
+                        <span x-effect="newTask.helper_ids = selected.map(e => e.id)"></span>
+                    </div>
+
+                    <div x-data="employeePicker()" x-init="init()">
+                        <label class="block text-sm font-medium text-white/80 mb-1">Nəzarətçilər</label>
+                        <input type="text" x-model="search" @input.debounce.300ms="searchEmployees()" @focus="open=true" placeholder="Nəzarətçi əməkdaş axtar..." class="w-full h-12 rounded-xl px-4 tis-input">
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <template x-for="emp in selected" :key="`new-supervisor-${emp.id}`">
+                                <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-2 rounded-full border border-white/10">
+                                    <img :src="emp.avatar_url" class="w-5 h-5 rounded-full object-cover">
+                                    <span x-text="emp.full_name"></span>
+                                    <button type="button" @click="remove(emp.id)" class="hover:text-red-300">x</button>
+                                </span>
+                            </template>
+                        </div>
+                        <div x-show="open && results.length > 0" @click.outside="open=false" class="relative z-10 mt-2 bg-[#1d315f] border border-white/10 rounded-2xl shadow-2xl max-h-48 overflow-y-auto">
+                            <template x-for="emp in results" :key="`new-supervisor-result-${emp.id}`">
+                                <button type="button" @click="select(emp)" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left text-sm">
+                                    <img :src="emp.avatar_url" class="w-8 h-8 rounded-full object-cover">
+                                    <div>
+                                        <p class="font-medium text-white" x-text="emp.full_name"></p>
+                                        <p class="text-xs text-white/45" x-text="emp.position || emp.email || ''"></p>
+                                    </div>
+                                </button>
+                            </template>
+                        </div>
+                        <span x-effect="newTask.supervisor_ids = selected.map(e => e.id)"></span>
+                    </div>
                 </div>
 
                 <div x-data="employeePicker(null)" x-init="init([], true)">
@@ -397,6 +451,103 @@
                                         <div class="flex justify-end gap-2">
                                             <button @click="editingTaskDates = false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button>
                                             <button @click="saveTaskDates()" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Saxla</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4 xl:col-span-2">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <h3 class="text-base font-semibold">Köməkçi və nəzarətçi əməkdaşlar</h3>
+                                        <button x-show="canEditTask(taskDetail)" @click="openTaskCollaboratorEditor()" class="text-[11px] px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/10">Redaktə et</button>
+                                    </div>
+
+                                    <div x-show="!editingTaskCollaborators" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div class="space-y-2">
+                                            <p class="text-xs text-white/45">Köməkçilər</p>
+                                            <template x-if="!(taskDetail?.helpers || []).length">
+                                                <div class="text-sm text-white/55">Köməkçi seçilməyib</div>
+                                            </template>
+                                            <template x-for="person in (taskDetail?.helpers || [])" :key="`detail-helper-${person.id}`">
+                                                <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                                                    <img :src="person.avatar_url" class="w-9 h-9 rounded-full object-cover">
+                                                    <div class="min-w-0">
+                                                        <p class="text-sm font-medium truncate" x-text="person.full_name"></p>
+                                                        <p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <p class="text-xs text-white/45">Nəzarətçilər</p>
+                                            <template x-if="!(taskDetail?.supervisors || []).length">
+                                                <div class="text-sm text-white/55">Nəzarətçi seçilməyib</div>
+                                            </template>
+                                            <template x-for="person in (taskDetail?.supervisors || [])" :key="`detail-supervisor-${person.id}`">
+                                                <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                                                    <img :src="person.avatar_url" class="w-9 h-9 rounded-full object-cover">
+                                                    <div class="min-w-0">
+                                                        <p class="text-sm font-medium truncate" x-text="person.full_name"></p>
+                                                        <p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <div x-show="editingTaskCollaborators" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="space-y-3">
+                                            <p class="text-xs text-white/45">Köməkçilər</p>
+                                            <div class="flex flex-wrap gap-2">
+                                                <template x-for="emp in selectedTaskHelpers" :key="`selected-helper-${emp.id}`">
+                                                    <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10">
+                                                        <img :src="emp.avatar_url" class="w-4 h-4 rounded-full object-cover">
+                                                        <span x-text="emp.full_name"></span>
+                                                        <button type="button" @click="removeTaskRole('helper', emp.id)" class="hover:text-red-300">x</button>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <input type="text" x-model="taskHelperSearch" @input.debounce.300ms="searchTaskRole('helper')" placeholder="Köməkçi axtar..." class="w-full h-11 rounded-xl px-4 tis-input">
+                                            <div class="rounded-2xl bg-[#163067] border border-white/10 max-h-36 overflow-y-auto" x-show="taskHelperResults.length">
+                                                <template x-for="emp in taskHelperResults" :key="`helper-result-${emp.id}`">
+                                                    <button type="button" @click="selectTaskRole('helper', emp)" class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5">
+                                                        <img :src="emp.avatar_url" class="w-8 h-8 rounded-full object-cover">
+                                                        <div>
+                                                            <p class="text-sm font-medium text-white" x-text="emp.full_name"></p>
+                                                            <p class="text-[11px] text-white/45" x-text="emp.position || emp.email || ''"></p>
+                                                        </div>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-3">
+                                            <p class="text-xs text-white/45">Nəzarətçilər</p>
+                                            <div class="flex flex-wrap gap-2">
+                                                <template x-for="emp in selectedTaskSupervisors" :key="`selected-supervisor-${emp.id}`">
+                                                    <span class="flex items-center gap-2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full border border-white/10">
+                                                        <img :src="emp.avatar_url" class="w-4 h-4 rounded-full object-cover">
+                                                        <span x-text="emp.full_name"></span>
+                                                        <button type="button" @click="removeTaskRole('supervisor', emp.id)" class="hover:text-red-300">x</button>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <input type="text" x-model="taskSupervisorSearch" @input.debounce.300ms="searchTaskRole('supervisor')" placeholder="Nəzarətçi axtar..." class="w-full h-11 rounded-xl px-4 tis-input">
+                                            <div class="rounded-2xl bg-[#163067] border border-white/10 max-h-36 overflow-y-auto" x-show="taskSupervisorResults.length">
+                                                <template x-for="emp in taskSupervisorResults" :key="`supervisor-result-${emp.id}`">
+                                                    <button type="button" @click="selectTaskRole('supervisor', emp)" class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5">
+                                                        <img :src="emp.avatar_url" class="w-8 h-8 rounded-full object-cover">
+                                                        <div>
+                                                            <p class="text-sm font-medium text-white" x-text="emp.full_name"></p>
+                                                            <p class="text-[11px] text-white/45" x-text="emp.position || emp.email || ''"></p>
+                                                        </div>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <div class="md:col-span-2 flex justify-end gap-2">
+                                            <button @click="editingTaskCollaborators = false" class="px-3 py-2 rounded-xl bg-white/8 hover:bg-white/12 text-sm">Ləğv</button>
+                                            <button @click="saveTaskCollaborators()" class="px-3 py-2 rounded-xl bg-[#6d44c5] hover:bg-[#613db1] text-sm">Saxla</button>
                                         </div>
                                     </div>
                                 </div>
@@ -606,6 +757,13 @@ function dashboard() {
         selectedTaskAssignees: [],
         taskAssigneeSearch: '',
         taskAssigneeResults: [],
+        editingTaskCollaborators: false,
+        selectedTaskHelpers: [],
+        selectedTaskSupervisors: [],
+        taskHelperSearch: '',
+        taskHelperResults: [],
+        taskSupervisorSearch: '',
+        taskSupervisorResults: [],
         editingTaskDates: false,
         taskDateForm: { start_date:'', due_date:'' },
         showInlineSubtaskForm: false,
@@ -834,6 +992,8 @@ function dashboard() {
                 start_date: new Date().toISOString().split('T')[0],
                 due_date: '',
                 assignee_ids: [],
+                helper_ids: [],
+                supervisor_ids: [],
                 require_approval: false,
                 deadline_locked: false,
                 assigned_by_id: null,
@@ -863,6 +1023,7 @@ function dashboard() {
             this.quickComment = '';
             this.taskComments = [];
             this.editingTaskAssignees = false;
+            this.editingTaskCollaborators = false;
             this.editingTaskDates = false;
             this.showInlineSubtaskForm = false;
             this.showChecklistForm = false;
@@ -885,6 +1046,7 @@ function dashboard() {
             this.quickComment = '';
             this.taskComments = [];
             this.editingTaskAssignees = false;
+            this.editingTaskCollaborators = false;
             this.editingTaskDates = false;
             this.showInlineSubtaskForm = false;
             this.showChecklistForm = false;
@@ -931,7 +1093,6 @@ function dashboard() {
             }
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.taskAssigneeSearch)}`;
-                if (this.taskDetail?.space_id) url += `&space_id=${this.taskDetail.space_id}`;
                 const data = await api('GET', url);
                 const arr = Array.isArray(data) ? data : (data?.data || []);
                 const ids = this.selectedTaskAssignees.map(e => e.id);
@@ -957,6 +1118,78 @@ function dashboard() {
                 const updated = await api('PATCH', `/tasks/${this.taskDetail.id}/assignees`, { assignee_ids: this.selectedTaskAssignees.map(e => e.id) });
                 this.taskDetail.assignees = updated.assignees ?? this.selectedTaskAssignees;
                 this.editingTaskAssignees = false;
+                await this.loadTasks();
+            } catch(e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
+            }
+        },
+
+        openTaskCollaboratorEditor() {
+            this.selectedTaskHelpers = [...(this.taskDetail?.helpers || [])];
+            this.selectedTaskSupervisors = [...(this.taskDetail?.supervisors || [])];
+            this.taskHelperSearch = '';
+            this.taskHelperResults = [];
+            this.taskSupervisorSearch = '';
+            this.taskSupervisorResults = [];
+            this.editingTaskCollaborators = true;
+        },
+
+        async searchTaskRole(role) {
+            const isHelper = role === 'helper';
+            const search = isHelper ? this.taskHelperSearch : this.taskSupervisorSearch;
+            if ((search || '').length < 2) {
+                if (isHelper) this.taskHelperResults = [];
+                else this.taskSupervisorResults = [];
+                return;
+            }
+
+            try {
+                let url = `/employees/search?q=${encodeURIComponent(search)}`;
+                const data = await api('GET', url);
+                const arr = Array.isArray(data) ? data : (data?.data || []);
+                const selected = isHelper ? this.selectedTaskHelpers : this.selectedTaskSupervisors;
+                const ids = selected.map(e => e.id);
+                const filtered = arr.filter(e => !ids.includes(e.id));
+                if (isHelper) this.taskHelperResults = filtered;
+                else this.taskSupervisorResults = filtered;
+            } catch(e) {
+                if (isHelper) this.taskHelperResults = [];
+                else this.taskSupervisorResults = [];
+            }
+        },
+
+        selectTaskRole(role, emp) {
+            if (role === 'helper') {
+                if (!this.selectedTaskHelpers.find(e => e.id === emp.id)) this.selectedTaskHelpers.push(emp);
+                this.taskHelperSearch = '';
+                this.taskHelperResults = [];
+                return;
+            }
+
+            if (!this.selectedTaskSupervisors.find(e => e.id === emp.id)) this.selectedTaskSupervisors.push(emp);
+            this.taskSupervisorSearch = '';
+            this.taskSupervisorResults = [];
+        },
+
+        removeTaskRole(role, id) {
+            if (role === 'helper') {
+                this.selectedTaskHelpers = this.selectedTaskHelpers.filter(e => e.id !== id);
+                return;
+            }
+
+            this.selectedTaskSupervisors = this.selectedTaskSupervisors.filter(e => e.id !== id);
+        },
+
+        async saveTaskCollaborators() {
+            if (!this.taskDetail?.id) return;
+            try {
+                const updated = await api('PUT', `/tasks/${this.taskDetail.id}`, {
+                    helper_ids: this.selectedTaskHelpers.map(e => e.id),
+                    supervisor_ids: this.selectedTaskSupervisors.map(e => e.id),
+                });
+                this.taskDetail.helpers = updated.helpers ?? this.selectedTaskHelpers;
+                this.taskDetail.supervisors = updated.supervisors ?? this.selectedTaskSupervisors;
+                this.editingTaskCollaborators = false;
                 await this.loadTasks();
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:e.message || 'Xəta', type:'error' } }));
@@ -1182,8 +1415,6 @@ function employeePicker(spaceId = null) {
             }
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.search)}`;
-                const currentSpaceId = spaceId || this.spaceId;
-                if (currentSpaceId) url += `&space_id=${currentSpaceId}`;
                 const data = await api('GET', url);
                 const arr = Array.isArray(data) ? data : (data?.data || []);
                 this.results = this.single ? arr : arr.filter(e => !this.selected.find(s => s.id === e.id));

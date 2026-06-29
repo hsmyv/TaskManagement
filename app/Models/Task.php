@@ -106,6 +106,20 @@ class Task extends Model
                     ->withTimestamps();
     }
 
+    public function helpers(): BelongsToMany
+    {
+        return $this->belongsToMany(Employee::class, 'task_helpers', 'task_id', 'employee_id')
+            ->withPivot(['added_by', 'added_at'])
+            ->withTimestamps();
+    }
+
+    public function supervisors(): BelongsToMany
+    {
+        return $this->belongsToMany(Employee::class, 'task_supervisors', 'task_id', 'employee_id')
+            ->withPivot(['added_by', 'added_at'])
+            ->withTimestamps();
+    }
+
     public function checklists(): HasMany
     {
         return $this->hasMany(Checklist::class)->orderBy('order');
@@ -152,9 +166,13 @@ class Task extends Model
         return $query->where(function ($q) use ($employee) {
             $q->where('created_by', $employee->id)
               ->orWhereHas('assignees', fn($aq) => $aq->where('employees.id', $employee->id))
+              ->orWhereHas('helpers', fn($hq) => $hq->where('employees.id', $employee->id))
+              ->orWhereHas('supervisors', fn($sq) => $sq->where('employees.id', $employee->id))
               ->orWhereHas('subtasks', function ($sq) use ($employee) {
                   $sq->where('created_by', $employee->id)
-                     ->orWhereHas('assignees', fn($aq) => $aq->where('employees.id', $employee->id));
+                     ->orWhereHas('assignees', fn($aq) => $aq->where('employees.id', $employee->id))
+                     ->orWhereHas('helpers', fn($hq) => $hq->where('employees.id', $employee->id))
+                     ->orWhereHas('supervisors', fn($sq) => $sq->where('employees.id', $employee->id));
               });
         });
     }
@@ -183,6 +201,16 @@ class Task extends Model
     public function isAssignee(Employee $employee): bool
     {
         return $this->assignees()->where('employees.id', $employee->id)->exists();
+    }
+
+    public function isHelper(Employee $employee): bool
+    {
+        return $this->helpers()->where('employees.id', $employee->id)->exists();
+    }
+
+    public function isSupervisor(Employee $employee): bool
+    {
+        return $this->supervisors()->where('employees.id', $employee->id)->exists();
     }
 
     public function isOverdue(): bool

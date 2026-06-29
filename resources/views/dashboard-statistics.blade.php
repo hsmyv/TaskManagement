@@ -386,6 +386,42 @@
                                 </div>
                             </div>
 
+                            <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4">
+                                <h3 class="text-base font-semibold">Köməkçi və nəzarətçi əməkdaşlar</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div class="space-y-2">
+                                        <p class="text-xs text-white/45">Köməkçilər</p>
+                                        <template x-if="!(taskDetail.helpers || []).length">
+                                            <div class="text-sm text-white/55">Köməkçi seçilməyib</div>
+                                        </template>
+                                        <template x-for="person in (taskDetail.helpers || [])" :key="'stat-modal-helper-' + person.id">
+                                            <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                                                <img :src="person.avatar_url" class="w-9 h-9 rounded-full object-cover">
+                                                <div class="min-w-0">
+                                                    <p class="text-sm font-medium truncate" x-text="person.full_name"></p>
+                                                    <p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <p class="text-xs text-white/45">Nəzarətçilər</p>
+                                        <template x-if="!(taskDetail.supervisors || []).length">
+                                            <div class="text-sm text-white/55">Nəzarətçi seçilməyib</div>
+                                        </template>
+                                        <template x-for="person in (taskDetail.supervisors || [])" :key="'stat-modal-supervisor-' + person.id">
+                                            <div class="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
+                                                <img :src="person.avatar_url" class="w-9 h-9 rounded-full object-cover">
+                                                <div class="min-w-0">
+                                                    <p class="text-sm font-medium truncate" x-text="person.full_name"></p>
+                                                    <p class="text-[11px] text-white/50 truncate" x-text="person.position || person.email || ''"></p>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
                                 <h3 class="text-base font-semibold">Alt tapşırıqlar</h3>
                                 <div class="space-y-2 max-h-48 overflow-y-auto pr-1 statistics-scroll">
@@ -672,7 +708,6 @@ function dashboardStatistics() {
             }
             try {
                 let url = `/employees/search?q=${encodeURIComponent(this.taskAssigneeSearch)}`;
-                if (this.taskDetail?.space_id) url += `&space_id=${this.taskDetail.space_id}`;
                 const data = await api('GET', url);
                 const employees = Array.isArray(data) ? data : (data?.data || []);
                 const selectedIds = this.selectedTaskAssignees.map(employee => employee.id);
