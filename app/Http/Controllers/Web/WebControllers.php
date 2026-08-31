@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
-// ── AuthWebController ─────────────────────────────────────────────────────────
 
 class AuthWebController extends Controller
 {
@@ -49,7 +48,6 @@ class AuthWebController extends Controller
     }
 }
 
-// ── DashboardWebController ────────────────────────────────────────────────────
 
 class DashboardWebController extends Controller
 {
@@ -59,7 +57,6 @@ class DashboardWebController extends Controller
     }
 }
 
-// ── SpaceWebController ────────────────────────────────────────────────────────
 
 class SpaceWebController extends Controller
 {
@@ -75,7 +72,6 @@ class SpaceWebController extends Controller
     }
 }
 
-// ── TaskWebController ─────────────────────────────────────────────────────────
 
 class TaskWebController extends Controller
 {
@@ -86,7 +82,6 @@ class TaskWebController extends Controller
     }
 }
 
-// ── NotificationWebController ─────────────────────────────────────────────────
 
 class NotificationWebController extends Controller
 {
@@ -96,7 +91,6 @@ class NotificationWebController extends Controller
     }
 }
 
-// ── AdminWebController ────────────────────────────────────────────────────────
 
 class AdminWebController extends Controller
 {

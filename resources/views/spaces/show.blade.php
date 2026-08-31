@@ -61,14 +61,14 @@
                         Üzvlər
                         <span class="text-white/60">({{ $spaceMembers->count() }})</span>
                     </summary>
-                    <div class="absolute right-0 mt-3 w-[320px] rounded-[24px] border border-white/10 bg-[#142a5b]/95 backdrop-blur-xl shadow-2xl p-4 z-30">
+                    <div class="absolute right-0 mt-3 w-[420px] rounded-[24px] border border-white/10 bg-[#142a5b]/95 backdrop-blur-xl shadow-2xl p-4 z-30">
                         <div class="flex items-center justify-between mb-3">
                             <h3 class="text-base font-semibold text-white">Space üzvləri</h3>
                             <span class="text-xs text-white/55">{{ $spaceMembers->count() }} nəfər</span>
                         </div>
                         <div x-show="canManageMembers" class="mb-3 rounded-2xl bg-white/5 border border-white/10 p-3 space-y-2">
                             <div class="flex gap-2">
-                                <input type="text" x-model="memberSearch" @input.debounce.300ms="searchSpaceMembers()" placeholder="Üzv axtar..." class="min-w-0 flex-1 h-10 rounded-xl px-3 tis-input text-sm">
+                                <input type="text" x-model="memberSearch" @input.debounce.300ms="searchSpaceMembers()" placeholder="Üzv əlavə et..." class="min-w-0 flex-1 h-10 rounded-xl px-3 tis-input text-sm">
                                 <select x-model="memberRole" class="h-10 rounded-xl px-2 bg-white/90 text-slate-700 text-xs focus:outline-none">
                                     <option value="employee">İşçi kimi</option>
                                     <option value="middle_manager">Şöbə müdiri kimi</option>

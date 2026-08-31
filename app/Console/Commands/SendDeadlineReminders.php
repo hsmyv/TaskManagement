@@ -23,7 +23,6 @@ class SendDeadlineReminders extends Command
     {
         $this->info('Deadline xatırlatmaları yoxlanılır...');
 
-        // Gecikmiş tasklar — gündəlik xatırlatma
         $overdues = Task::overdue()
             ->with(['assignees', 'space'])
             ->get();
@@ -41,7 +40,6 @@ class SendDeadlineReminders extends Command
 
         $this->info("Gecikmiş: {$overdues->count()} task");
 
-        // Pending emailləri göndər
         $this->processEmailQueue();
     }
 

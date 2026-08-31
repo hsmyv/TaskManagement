@@ -68,13 +68,11 @@ public function index(Request $request, Space $space): JsonResponse
             'created_by' => $request->user()->id,
         ]);
 
-        // Ensure creator is a member
         $memberIds = collect($validated['member_ids'] ?? [])
             ->push($request->user()->id)
             ->unique()
             ->values();
 
-        // Only members from this space can be added
         $spaceMemberIds = $space->members()->pluck('employees.id')->all();
         $memberIds = $memberIds->filter(fn ($id) => in_array($id, $spaceMemberIds, true));
 

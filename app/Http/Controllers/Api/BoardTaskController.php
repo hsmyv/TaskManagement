@@ -96,7 +96,6 @@ class BoardTaskController extends Controller
 
         $newBoardId = array_key_exists('board_id', $validated) ? $validated['board_id'] : $task->board_id;
 
-        // If moving into a board, ensure user can view it
         $contextBoard = null;
         if ($newBoardId) {
             $contextBoard = Board::with('space')->findOrFail((int) $newBoardId);

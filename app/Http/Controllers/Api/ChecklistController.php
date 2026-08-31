@@ -20,13 +20,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-// ── ChecklistController ───────────────────────────────────────────────────────
 
 class ChecklistController extends Controller
 {
     public function store(Request $request, Task $task): JsonResponse
     {
-        // Yalnız task yaradan checklist elementləri əlavə edə bilər
         $this->authorize('update', $task);
 
         $data  = $request->validate(['title' => 'required|string|max:255']);
@@ -42,7 +40,6 @@ class ChecklistController extends Controller
 
     public function toggle(Request $request, Checklist $checklist): JsonResponse
     {
-        // Toggle etmək üçün task-ı görmək kifayətdir (məsul şəxs də işarələyə bilsin)
         $task = $checklist->task()->with('space')->firstOrFail();
         $this->authorize('toggleChecklist', $task);
 

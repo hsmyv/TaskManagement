@@ -5,8 +5,6 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-// ── Status History ────────────────────────────────────────────────────────────
-
 class StatusHistoryResource extends JsonResource
 {
     public function toArray(Request $request): array

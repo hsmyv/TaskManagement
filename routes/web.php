@@ -9,32 +9,25 @@ use App\Http\Controllers\Web\NotificationWebController;
 use App\Http\Controllers\Web\BoardWebController;
 use Illuminate\Support\Facades\Route;
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthWebController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthWebController::class, 'login'])->name('login.post');
 });
 
-// ── Authenticated ─────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'active.employee'])->group(function () {
     Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
 
-    // Dashboard
     Route::get('/', [DashboardWebController::class, 'index'])->name('dashboard');
     Route::get('/statistics', [DashboardWebController::class, 'statistics'])->name('dashboard.statistics');
 
-    // Spaces
     // Route::get('/spaces',              [SpaceWebController::class, 'index'])->name('spaces.index');
     Route::get('/spaces/{space}',      [SpaceWebController::class, 'show'])->name('spaces.detail');
     Route::get('/spaces/{space}/boards/{board}', [BoardWebController::class, 'show'])->name('boards.show');
 
-    // Tasks
     Route::get('/tasks/{task}',        [TaskWebController::class, 'show'])->name('tasks.show');
 
-    // Notifications
     Route::get('/notifications',       [NotificationWebController::class, 'index'])->name('notifications.index');
 
-    // Admin Panel
     Route::middleware('role:administrator')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/',                         [AdminWebController::class, 'index'])->name('index');
         Route::get('/spaces',                   [AdminWebController::class, 'spaces'])->name('spaces');

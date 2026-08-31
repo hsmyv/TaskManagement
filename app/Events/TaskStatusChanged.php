@@ -14,9 +14,6 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 
-
-// ── TaskStatusChanged ─────────────────────────────────────────────────────────
-
 class TaskStatusChanged implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;

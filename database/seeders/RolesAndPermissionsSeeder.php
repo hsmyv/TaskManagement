@@ -12,20 +12,16 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        // Cache-i sıfırla
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // ── Permissions ───────────────────────────────────────────────────
 
         $permissions = [
-            // Space
             'space.create',
             'space.update',
             'space.delete',
             'space.view',
             'space.manage_members',
 
-            // Task - qlobal
             'task.create',
             'task.view.all',
             'task.view.own',
@@ -36,20 +32,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'task.assign',
             'task.approve',
 
-            // Task - deadline
-            'task.update.deadline.any',   // Hər kəsin deadline-ını dəyişmək
+            'task.update.deadline.any',
 
-            // Comment
             'comment.create',
             'comment.delete.own',
             'comment.delete.any',
 
-            // Attachment
             'attachment.upload',
             'attachment.delete.own',
             'attachment.delete.any',
 
-            // Admin panel
             'admin.access',
             'admin.manage_roles',
             'admin.manage_employees',
@@ -59,13 +51,10 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
-        // ── Roles ─────────────────────────────────────────────────────────
 
-        // Administrator — Tam səlahiyyət
         $admin = Role::firstOrCreate(['name' => UserRole::Administrator->value, 'guard_name' => 'web']);
         $admin->syncPermissions(Permission::all());
 
-        // Executive Manager — Qlobal idarəetmə (Space yaratma xaric)
         $exec = Role::firstOrCreate(['name' => UserRole::ExecutiveManager->value, 'guard_name' => 'web']);
         $exec->syncPermissions([
             'space.view',
@@ -83,7 +72,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'attachment.delete.any',
         ]);
 
-        // Senior Manager — Öz Space daxilində tam səlahiyyət
         $senior = Role::firstOrCreate(['name' => UserRole::SeniorManager->value, 'guard_name' => 'web']);
         $senior->syncPermissions([
             'space.view',
@@ -101,7 +89,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'attachment.delete.own',
         ]);
 
-        // Middle Manager — Yalnız öz tapşırıqları
         $middle = Role::firstOrCreate(['name' => UserRole::MiddleManager->value, 'guard_name' => 'web']);
         $middle->syncPermissions([
             'space.view',
@@ -116,7 +103,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'attachment.delete.own',
         ]);
 
-        // Employee — Ən məhdud
         $employee = Role::firstOrCreate(['name' => UserRole::Employee->value, 'guard_name' => 'web']);
         $employee->syncPermissions([
             'space.view',

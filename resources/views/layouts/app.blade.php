@@ -450,7 +450,6 @@ function notificationBell() {
             return icons[n.event] ?? '🔔';
         },
 
-        // ── Event tipinə görə insan oxuya biləcəyi mətn ──────────────────
         notificationText(n) {
             const d = n.data ?? {};
             const title = d.task_title ? `"${d.task_title}"` : 'tapşırıq';
@@ -481,7 +480,6 @@ function notificationBell() {
     }
 }
 
-// ── Create Space Modal ────────────────────────────────────────────────────────
 function createSpaceModal() {
     return {
         open:        false,
@@ -491,7 +489,6 @@ function createSpaceModal() {
         form:        { name: '', description: '', color: '#3B82F6', department_id: '' },
 
         async init() {
-            // Departamentləri bir dəfə yüklə
             try {
                 const data = await api('GET', '/departments');
                 this.departments = Array.isArray(data) ? data : (data?.data ?? []);

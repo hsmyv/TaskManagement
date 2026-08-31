@@ -19,13 +19,12 @@ class AdminEmployeeController extends Controller
     {
     }
 
-    // ── Siyahı + axtarış ─────────────────────────────────────────────────
     public function index(Request $request): JsonResponse
     {
         $q          = $request->query('q', '');
         $deptId     = $request->query('department_id');
         $roleFilter = $request->query('role');
-        $status     = $request->query('status'); // 'active' | 'inactive' | ''
+        $status     = $request->query('status');
 
         $employees = Employee::with('department')
             ->when($q, fn($query) =>
@@ -54,7 +53,6 @@ class AdminEmployeeController extends Controller
         ]);
     }
 
-    // ── Yarat ─────────────────────────────────────────────────────────────
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -81,7 +79,6 @@ class AdminEmployeeController extends Controller
         return response()->json(new EmployeeResource($employee), 201);
     }
 
-    // ── Yenilə ────────────────────────────────────────────────────────────
     public function update(Request $request, Employee $employee): JsonResponse
     {
         $data = $request->validate([
@@ -114,10 +111,8 @@ class AdminEmployeeController extends Controller
         return response()->json(new EmployeeResource($employee));
     }
 
-    // ── Sil ───────────────────────────────────────────────────────────────
     public function destroy(Employee $employee): JsonResponse
     {
-        // Özünü silə bilməz
         if ($employee->id === request()->user()->id) {
             return response()->json(['message' => 'Öz hesabınızı silə bilməzsiniz.'], 422);
         }
@@ -126,7 +121,6 @@ class AdminEmployeeController extends Controller
         return response()->json(['message' => 'Əməkdaş silindi.']);
     }
 
-    // ── Aktiv/passiv ──────────────────────────────────────────────────────
     public function toggleActive(Employee $employee): JsonResponse
     {
         if ($employee->id === request()->user()->id) {
@@ -139,7 +133,6 @@ class AdminEmployeeController extends Controller
         return response()->json(new EmployeeResource($employee));
     }
 
-    // ── Rollar siyahısı ───────────────────────────────────────────────────
     public function roles(): JsonResponse
     {
         $roles = Role::withCount('permissions')

@@ -31,7 +31,6 @@ class DashboardController extends Controller
                 });
         };
 
-        // ── Yalnız mənə aid tapşırıqlar (yaratdıqlarım + assign olunduqlarım) ──
         $myTasks = Task::query()
             ->with(['space.department', 'board', 'assignees', 'helpers', 'supervisors', 'creator', 'assigner'])
             ->withCount('subtasks')
@@ -39,9 +38,7 @@ class DashboardController extends Controller
             ->where($onlyEmployeeTasks)
             ->get();
 
-        // ── Space-lər: members_count + mənə aid tasks_count ──────────────────
         if ($employee->hasGlobalAccess()) {
-            // Admin / Executive — bütün space-lər, bütün tapşırıqlar
             $spaces = Space::withCount('members')
                 ->withCount('boards')
                 ->withCount([
@@ -51,8 +48,7 @@ class DashboardController extends Controller
                 ->where('is_active', true)
                 ->get();
         } else {
-            // Digər rolllar — yalnız üzv olduqları space-lər
-            // tasks_count → yalnız həmin space-də mənə aid tapşırıqlar
+
             $spaces = $employee->spaces()
                 ->withCount('members')
                 ->withCount('boards')
@@ -63,7 +59,6 @@ class DashboardController extends Controller
                     'tasks as tasks_count' => function ($query) use ($employee) {
                         $query->whereNull('parent_task_id')
                               ->where(function ($q) use ($employee) {
-                                  // Mən yaratmışam VƏ ya mənə assign olunub
                                   $q->where('created_by', $employee->id)
                                     ->orWhereHas('assignees', function ($a) use ($employee) {
                                         $a->where('employees.id', $employee->id);

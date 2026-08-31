@@ -11,7 +11,6 @@ class Attachment extends Model
 {
     use SoftDeletes;
 
-    // İcazə verilən fayl tipləri (TIS section 5.2)
     const ALLOWED_MIMES = [
         'text/plain',
         'application/msword',
@@ -27,7 +26,7 @@ class Attachment extends Model
         'application/pdf',
     ];
 
-    const MAX_SIZE_MB = 10; // TIS section 13
+    const MAX_SIZE_MB = 10;
 
     protected $fillable = [
         'task_id',

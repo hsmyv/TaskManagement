@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-// ── Status History ────────────────────────────────────────────────────────────
 
 class StatusHistory extends Model
 {
@@ -37,7 +36,6 @@ class StatusHistory extends Model
         return $this->belongsTo(Employee::class, 'changed_by');
     }
 
-    // Status etiketlərini Azərbaycanca qaytar
     public static function statusLabel(string $status): string
     {
         return match ($status) {

@@ -525,12 +525,10 @@ function taskDetail(taskId) {
         newSubtask:       { title:'', due_date:'' },
         _pollTimer:       null,
 
-        // ── Detallar redaktəsi ─────────────────────────────────────────
         editingDetails:  false,
         savingDetails:   false,
         detailForm:      {},
 
-        // ── Assignee redaktəsi ─────────────────────────────────────────
         editingAssignees:       false,
         savingAssignees:        false,
         selectedAssignees:      [],
@@ -579,7 +577,6 @@ function taskDetail(taskId) {
             } catch(e) {}
         },
 
-        // ── Detallar redaktəsi ────────────────────────────────────────
         openDetails() {
             this.detailForm = {
                 start_date:      this.task.start_date      ?? '',
@@ -600,7 +597,6 @@ function taskDetail(taskId) {
                     estimated_hours: this.detailForm.estimated_hours  || null,
                 };
                 const updated = await api('PUT', `/tasks/${this.taskId}`, payload);
-                // Yalnız lazım olan sahələri yenilə, digərləri qalsın
                 this.task.start_date      = updated.start_date;
                 this.task.due_date        = updated.due_date;
                 this.task.priority        = updated.priority;
@@ -615,7 +611,6 @@ function taskDetail(taskId) {
             }
         },
 
-        // ── Assignee redaktəsi ────────────────────────────────────────
         async openAssignees() {
             this.selectedAssignees       = [...(this.task.assignees ?? [])];
             this.assigneeSearch          = '';
@@ -671,7 +666,6 @@ function taskDetail(taskId) {
             }
         },
 
-        // ── Status ───────────────────────────────────────────────────
         changeStatus(status) {
             window.dispatchEvent(new CustomEvent('open-status-modal', { detail: { status } }));
         },
@@ -698,7 +692,6 @@ function taskDetail(taskId) {
             }
         },
 
-        // ── Title / Desc ──────────────────────────────────────────────
         async saveTitle() {
             if (!this.editTitle.trim()) return;
             try {
@@ -721,7 +714,6 @@ function taskDetail(taskId) {
             }
         },
 
-        // ── Comments ──────────────────────────────────────────────────
         async submitComment() {
             if (!this.newComment.trim()) return;
             try {
@@ -740,7 +732,6 @@ function taskDetail(taskId) {
             } catch(e) {}
         },
 
-        // ── Checklist ─────────────────────────────────────────────────
         async addChecklist() {
             if (!this.newChecklistItem.trim()) return;
             try {
@@ -765,7 +756,6 @@ function taskDetail(taskId) {
             } catch(e) {}
         },
 
-        // ── Subtasks ──────────────────────────────────────────────────
         async createSubtask() {
             if (!this.newSubtask.title.trim()) return;
             try {
@@ -777,7 +767,6 @@ function taskDetail(taskId) {
             } catch(e) {}
         },
 
-        // ── Attachments ───────────────────────────────────────────────
         async uploadFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -801,7 +790,6 @@ function taskDetail(taskId) {
             } catch(e) {}
         },
 
-        // ── Helpers ───────────────────────────────────────────────────
         getExt(name)      { return name?.split('.').pop().toUpperCase().slice(0,4) || 'FILE'; },
         priorityLabel(p)  { return { low:'Aşağı', medium:'Orta', high:'Yüksək', urgent:'Təcili' }[p] || p; },
         formatDate(dt) {

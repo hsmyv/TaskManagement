@@ -405,23 +405,19 @@ function adminSpaces() {
         filterDept:  '',
         filterStatus:'',
 
-        // Formlar
         showForm:    false,
         editMode:    false,
         saving:      false,
         error:       '',
         form:        {},
 
-        // Members modal
         showMembers:      false,
         selectedSpace:    null,
         newMember:        { employee_id: '', space_role: 'employee', _name: '' },
 
-        // Delete confirm
         showDelete:   false,
         deleteTarget: null,
 
-        // Hazır rəng palitras
         presetColors: ['#3B82F6','#8B5CF6','#10B981','#F59E0B','#EF4444','#EC4899','#06B6D4','#64748B'],
 
         async load() {
@@ -447,7 +443,6 @@ function adminSpaces() {
             this.allEmployees = Array.isArray(data) ? data : (data?.data ?? []);
         },
 
-        // ── Filter ──────────────────────────────────────────────────────
         get filteredSpaces() {
             return this.spaces.filter(s => {
                 const matchSearch = !this.search
@@ -460,7 +455,6 @@ function adminSpaces() {
             });
         },
 
-        // ── CREATE ───────────────────────────────────────────────────────
         openCreate() {
             this.editMode = false;
             this.error    = '';
@@ -468,7 +462,6 @@ function adminSpaces() {
             this.showForm = true;
         },
 
-        // ── EDIT ─────────────────────────────────────────────────────────
         openEdit(space) {
             this.editMode = true;
             this.error    = '';
@@ -484,7 +477,6 @@ function adminSpaces() {
             this.showForm = true;
         },
 
-        // ── SUBMIT (create / update) ──────────────────────────────────────
         async submit() {
             this.error = '';
             if (!this.form.name.trim()) { this.error = 'Ad mütləqdir.'; return; }
@@ -520,7 +512,6 @@ function adminSpaces() {
             }
         },
 
-        // ── TOGGLE ACTIVE ─────────────────────────────────────────────────
         async toggleActive(space) {
             try {
                 const updated = await api('PUT', `/spaces/${space.id}`, { is_active: !space.is_active });
@@ -534,7 +525,6 @@ function adminSpaces() {
             }
         },
 
-        // ── DELETE ───────────────────────────────────────────────────────
         confirmDelete(space) {
             this.deleteTarget = space;
             this.showDelete   = true;
@@ -554,7 +544,6 @@ function adminSpaces() {
             }
         },
 
-        // ── MEMBERS ───────────────────────────────────────────────────────
         async openMembers(space) {
             this.selectedSpace = space;
             this.newMember     = { employee_id: '', space_role: 'employee', _name: '' };
@@ -582,7 +571,7 @@ function adminSpaces() {
                     (e.position ?? '').toLowerCase().includes(lower) ||
                     (e.department?.name ?? '').toLowerCase().includes(lower)
                 )
-                .slice(0, 10); // maksimum 10 nəticə
+                .slice(0, 10);
         },
 
         async addMember() {
@@ -591,7 +580,6 @@ function adminSpaces() {
                 await api('POST', `/spaces/${this.selectedSpace.id}/members`, this.newMember);
                 await this.loadMembers(this.selectedSpace.id);
                 this.newMember = { employee_id: '', space_role: 'employee', _name: '' };
-                // spaces siyahısında members_count artır
                 const idx = this.spaces.findIndex(s => s.id === this.selectedSpace.id);
                 if (idx !== -1) this.spaces[idx].members_count = (this.spaces[idx].members_count ?? 0) + 1;
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message:'Üzv əlavə edildi.', type:'success' } }));

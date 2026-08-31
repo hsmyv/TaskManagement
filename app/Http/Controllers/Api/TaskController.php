@@ -14,9 +14,6 @@ class TaskController extends Controller
 {
     public function __construct(private readonly TaskService $taskService) {}
 
-    /**
-     * Space-É™ aid bÃ¼tÃ¼n tasklar (Kanban Ã¼Ã§Ã¼n)
-     */
     public function index(Request $request, Space $space): JsonResponse
     {
         $this->authorize('view', $space);
@@ -50,7 +47,6 @@ class TaskController extends Controller
             });
         }
 
-        // FilterlÉ™r (TIS section 5.2)
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -111,7 +107,6 @@ class TaskController extends Controller
             ? $query->orderBy('board_position')->get()
             : $query->latest()->get();
 
-        // Kanban Ã¼Ã§Ã¼n statuslara gÃ¶rÉ™ qruplaÅŸdÄ±r
         if ($request->boolean('grouped')) {
             $grouped = $tasks->groupBy('status')->map(fn($g) => TaskResource::collection($g));
             return response()->json($grouped);

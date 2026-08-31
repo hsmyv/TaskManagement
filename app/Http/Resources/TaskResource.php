@@ -33,7 +33,6 @@ class TaskResource extends JsonResource
             'is_subtask'       => $this->isSubtask(),
             'progress'         => $this->progress_percentage,
 
-            // İlişkilər
             'space'         => new SpaceResource($this->whenLoaded('space')),
             'board'         => new BoardResource($this->whenLoaded('board')),
             'creator'       => new EmployeeResource($this->whenLoaded('creator')),
@@ -54,7 +53,6 @@ class TaskResource extends JsonResource
             'comments_count'   => (int) ($this->comments_count ?? 0),
             'status_history'   => StatusHistoryResource::collection($this->whenLoaded('statusHistory')),
 
-            // İcazələr
             'can' => [
                 'update'          => $request->user()?->can('update', $this->resource),
                 'delete'          => $request->user()?->can('delete', $this->resource),

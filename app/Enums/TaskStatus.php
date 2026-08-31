@@ -32,10 +32,6 @@ enum TaskStatus: string
         };
     }
 
-    /**
-     * Statusdan "Done" seçildikdə require_approval aktiv isə
-     * "waiting_for_approve"-a keçməli, yoxsa birbaşa "completed"
-     */
     public static function resolveNextStatus(string $requested, bool $requireApproval): self
     {
         if ($requested === self::Completed->value && $requireApproval) {
@@ -44,9 +40,6 @@ enum TaskStatus: string
         return self::from($requested);
     }
 
-    /**
-     * Cari statusdan hansı statuslara keçmək olar
-     */
     public function allowedTransitions(): array
     {
         return match ($this) {

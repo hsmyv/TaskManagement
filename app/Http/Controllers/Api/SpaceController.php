@@ -46,7 +46,6 @@ public function store(Request $request): JsonResponse
 
     $space = Space::create($data);
 
-    // Space yaradan admin üzv olsun
     $space->members()->syncWithoutDetaching([
         $request->user()->id => [
             'space_role' => 'senior_manager',
@@ -55,7 +54,6 @@ public function store(Request $request): JsonResponse
         ],
     ]);
 
-    // Seçilən manager avtomatik üzv olsun
     if (!empty($data['manager_employee_id'])) {
         $space->members()->syncWithoutDetaching([
             $data['manager_employee_id'] => [
@@ -99,14 +97,12 @@ public function update(Request $request, Space $space): JsonResponse
     if (array_key_exists('manager_employee_id', $data)) {
         $newManagerId = $data['manager_employee_id'];
 
-        // köhnə manager varsa, manager flag-ni sil
         if ($oldManagerId) {
             $space->members()->updateExistingPivot($oldManagerId, [
                 'is_manager' => false,
             ]);
         }
 
-        // yeni manager seçilibsə, onu member et və manager flag ver
         if ($newManagerId) {
             $space->members()->syncWithoutDetaching([
                 $newManagerId => [
@@ -163,7 +159,6 @@ public function update(Request $request, Space $space): JsonResponse
         $canCreateBoards = (bool) ($data['can_create_boards'] ?? false);
 
         if ($isManager) {
-            // Only one manager per space — clear previous manager(s)
             $currentManagers = $space->members()
                 ->wherePivot('is_manager', true)
                 ->pluck('employees.id')
@@ -194,7 +189,6 @@ public function update(Request $request, Space $space): JsonResponse
         return response()->json(['message' => 'Üzv silindi.']);
     }
 
-    // ── Departamentlər siyahısı (modal üçün) ─────────────────────────────
     public function departments(): JsonResponse
     {
         $departments = Department::where('is_active', true)->orderBy('name')->get();

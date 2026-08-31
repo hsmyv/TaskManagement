@@ -48,7 +48,6 @@ class Employee extends Authenticatable
         ];
     }
 
-    // ── Accessors ─────────────────────────────────────────────────────────
 
     public function getFullNameAttribute(): string
     {
@@ -64,7 +63,6 @@ class Employee extends Authenticatable
         return "https://ui-avatars.com/api/?name={$this->name}+{$this->surname}&background=3B82F6&color=fff";
     }
 
-    // ── Relations ─────────────────────────────────────────────────────────
 
     public function department(): BelongsTo
     {
@@ -111,7 +109,6 @@ class Employee extends Authenticatable
         return $this->hasMany(Notification::class, 'employee_id');
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
 
     public function isMemberOf(Space $space): bool
     {
@@ -145,7 +142,6 @@ class Employee extends Authenticatable
         return $this->hasAnyRole(['administrator', 'executive_manager']);
     }
 
-    // ── Scopes ────────────────────────────────────────────────────────────
 
     public function scopeActive($query)
     {

@@ -8,17 +8,11 @@ use App\Models\Task;
 
 class SpacePolicy
 {
-    /**
-     * Space yaratmaq — yalnız Administrator
-     */
     public function create(Employee $employee): bool
     {
         return $employee->hasRole('administrator');
     }
 
-    /**
-     * Space redaktə etmək
-     */
     public function update(Employee $employee, Space $space): bool
     {
         if ($employee->hasGlobalAccess()) {
@@ -30,17 +24,11 @@ class SpacePolicy
             || $employee->isSpaceManager($space);
     }
 
-    /**
-     * Space silmək — yalnız Administrator
-     */
     public function delete(Employee $employee, Space $space): bool
     {
         return $employee->hasRole('administrator');
     }
 
-    /**
-     * Üzv əlavə etmək/silmək
-     */
     public function manageMembers(Employee $employee, Space $space): bool
     {
         if ($employee->hasGlobalAccess()) {
@@ -51,9 +39,6 @@ class SpacePolicy
             || $employee->isSpaceManager($space);
     }
 
-    /**
-     * Space-ə baxmaq — üzv olanlar
-     */
     public function view(Employee $employee, Space $space): bool
     {
         if ($employee->hasGlobalAccess() || $employee->isMemberOf($space)) {

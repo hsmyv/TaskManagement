@@ -154,10 +154,8 @@ function adminRoles() {
             this.loading = true;
             try {
                 const data   = await api('GET', '/admin/roles');
-                // Hər rol üçün əməkdaş sayını da yüklə
                 const counts = await api('GET', '/admin/employees?per_page=1').catch(() => null);
                 this.roles   = Array.isArray(data) ? data : [];
-                // Sayları ayrıca yüklə
                 await this.loadCounts();
             } catch(e) {
                 window.dispatchEvent(new CustomEvent('toast', { detail:{ message: e.message, type:'error' } }));

@@ -2,9 +2,6 @@
 
 namespace App\Enums;
 
-/**
- * Qlobal sistem rolları (Spatie Permission ilə idarə olunur)
- */
 enum UserRole: string
 {
     case Administrator     = 'administrator';
@@ -24,17 +21,13 @@ enum UserRole: string
         };
     }
 
-    /**
-     * Bu rolu daşıyanın qlobal səlahiyyəti varmı?
-     */
+
     public function hasGlobalAccess(): bool
     {
         return in_array($this, [self::Administrator, self::ExecutiveManager]);
     }
 
-    /**
-     * Space yarada bilərmi?
-     */
+
     public function canManageSpaces(): bool
     {
         return $this === self::Administrator;

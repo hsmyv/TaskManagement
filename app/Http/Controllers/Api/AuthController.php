@@ -105,8 +105,8 @@ class AuthController extends Controller
                     ->orWhere('email', 'like', "%{$q}%");
             });
 
-        // Space üzvləri ilə məhdudlaşdır
-        if ($spaceId) {
+
+            if ($spaceId) {
             $query->where(function ($query) use ($spaceId) {
                 $query->whereHas('spaces', fn($q) => $q->where('spaces.id', $spaceId))
                     ->orWhere('email', 'ai@sosial.gov.az');

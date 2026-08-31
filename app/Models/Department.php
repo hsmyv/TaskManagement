@@ -24,7 +24,6 @@ class Department extends Model
         ];
     }
 
-    // ── Relations ─────────────────────────────────────────────────────────
 
     public function employees(): HasMany
     {

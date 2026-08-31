@@ -13,8 +13,6 @@ class Task extends Model
 {
     use HasFactory, SoftDeletes;
 
-    // ── Status sabitləri ──────────────────────────────────────────────────
-
     const STATUS_TODO               = 'todo';
     const STATUS_IN_PROGRESS        = 'in_progress';
     const STATUS_WAITING_FOR_APPROVE = 'waiting_for_approve';
@@ -58,8 +56,6 @@ class Task extends Model
         ];
     }
 
-    // ── Relations ─────────────────────────────────────────────────────────
-
     public function space(): BelongsTo
     {
         return $this->belongsTo(Space::class);
@@ -96,9 +92,6 @@ class Task extends Model
         return $this->belongsTo(Employee::class, 'assigned_by');
     }
 
-    /**
-     * Tapşırığın məsul şəxsləri (pivot ilə)
-     */
     public function assignees(): BelongsToMany
     {
         return $this->belongsToMany(Employee::class, 'task_assignees', 'task_id', 'employee_id')
@@ -145,7 +138,6 @@ class Task extends Model
         return $this->hasMany(StatusHistory::class)->latest('changed_at');
     }
 
-    // ── Scopes ────────────────────────────────────────────────────────────
 
     public function scopeRootTasks($query)
     {
@@ -191,7 +183,6 @@ class Task extends Model
                      ->where('due_date', '<', now()->toDateString());
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
 
     public function isSubtask(): bool
     {

@@ -18,7 +18,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-// ── DashboardController ───────────────────────────────────────────────────────
 
 class DashboardController extends Controller
 {
@@ -61,7 +60,6 @@ class DashboardController extends Controller
     }
 }
 
-// ── CommentController ─────────────────────────────────────────────────────────
 
 class CommentController extends Controller
 {
@@ -107,7 +105,6 @@ class CommentController extends Controller
     }
 }
 
-// ── ChecklistController ───────────────────────────────────────────────────────
 
 class ChecklistController extends Controller
 {
@@ -163,7 +160,6 @@ class ChecklistController extends Controller
     }
 }
 
-// ── AttachmentController ──────────────────────────────────────────────────────
 
 class AttachmentController extends Controller
 {
@@ -219,7 +215,6 @@ class AttachmentController extends Controller
     }
 }
 
-// ── NotificationController ────────────────────────────────────────────────────
 
 class NotificationController extends Controller
 {

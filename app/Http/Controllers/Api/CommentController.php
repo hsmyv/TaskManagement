@@ -22,7 +22,6 @@ use Illuminate\Support\Str;
 
 
 
-// ── CommentController ─────────────────────────────────────────────────────────
 
 class CommentController extends Controller
 {

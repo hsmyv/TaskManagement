@@ -34,8 +34,6 @@ class Space extends Model
         ];
     }
 
-    // ── Boot ──────────────────────────────────────────────────────────────
-
     protected static function boot(): void
     {
         parent::boot();
@@ -47,7 +45,6 @@ class Space extends Model
         });
     }
 
-    // ── Relations ─────────────────────────────────────────────────────────
 
     public function creator(): BelongsTo
     {
@@ -85,7 +82,6 @@ public function manager(): BelongsTo
                     ->whereNull('parent_task_id');
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
 
     public function hasMember(Employee $employee): bool
     {

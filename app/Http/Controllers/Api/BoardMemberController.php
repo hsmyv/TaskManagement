@@ -30,13 +30,11 @@ class BoardMemberController extends Controller
             'member_ids.*' => ['integer', 'exists:employees,id'],
         ]);
 
-        // Ensure creator always stays a member
         $memberIds = collect($validated['member_ids'])
             ->push($board->created_by)
             ->unique()
             ->values();
 
-        // Only members from this space can be added
         $spaceMemberIds = $board->space->members()->pluck('employees.id')->all();
         $memberIds = $memberIds->filter(fn ($id) => in_array($id, $spaceMemberIds, true))->values();
 
