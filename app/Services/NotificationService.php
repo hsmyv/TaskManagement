@@ -10,12 +10,8 @@ use App\Models\Task;
 
 class NotificationService
 {
-    /**
-     * Bildiriş yarat və real-time göndər
-     */
     public function notify(Employee $recipient, string $event, Task $task, array $data = []): void
     {
-        // Özünə bildiriş göndərməyək
         if ($recipient->id === request()->user()?->id) {
             return;
         }
@@ -33,13 +29,10 @@ class NotificationService
             ], $data),
         ]);
 
-        // Real-time: private employee kanalına göndər
         broadcast(new NewNotification($notification))->toOthers();
     }
 
-    /**
-     * Bir neçə alıcıya bildiriş
-     */
+
     public function notifyMany(iterable $recipients, string $event, Task $task, array $data = []): void
     {
         foreach ($recipients as $recipient) {
@@ -47,9 +40,7 @@ class NotificationService
         }
     }
 
-    /**
-     * Task yaradıldıqda
-     */
+
     public function notifyTaskCreated(Task $task, Employee $creator): void
     {
         $recipients = $task->assignees;
@@ -57,7 +48,6 @@ class NotificationService
             'created_by' => $creator->full_name,
         ]);
 
-        // Email queue-ya əlavə et
         foreach ($recipients as $recipient) {
             $this->queueEmail($recipient, 'task_created', $task, [
                 'task_title'   => $task->title,
@@ -69,9 +59,6 @@ class NotificationService
         }
     }
 
-    /**
-     * Task yeniləndikdə
-     */
     public function notifyTaskUpdated(Task $task, Employee $updater, array $changes): void
     {
         $recipients = $task->assignees->merge(collect([$task->creator]))->unique('id');
@@ -81,9 +68,7 @@ class NotificationService
         ]);
     }
 
-    /**
-     * Status dəyişdikdə
-     */
+
     public function notifyStatusChanged(Task $task, Employee $changer, string $from, string $to): void
     {
         $recipients = $task->assignees->merge(collect([$task->assigner ?? $task->creator]))->unique('id');
@@ -94,15 +79,12 @@ class NotificationService
         ]);
     }
 
-    /**
-     * Tapşırıq təsdiqləndi
-     */
+
     public function notifyTaskApproved(Task $task, Employee $approver): void
     {
-        // Tapşırığı yaradan və assign edən şəxsə də bildiriş getsin
         $recipients = $task->assignees
             ->merge(collect([$task->assigner ?? $task->creator]))
-            ->filter()       // null-ları təmizlə
+            ->filter()
             ->unique('id');
 
         $this->notifyMany($recipients, 'task_approved', $task, [
@@ -110,9 +92,7 @@ class NotificationService
         ]);
     }
 
-    /**
-     * Assignee dəyişdikdə
-     */
+
     public function notifyAssigneesChanged(Task $task, Employee $assigner): void
     {
         $this->notifyMany($task->assignees, 'assignee_changed', $task, [
@@ -120,9 +100,7 @@ class NotificationService
         ]);
     }
 
-    /**
-     * Şərh əlavə edildikdə
-     */
+
     public function notifyCommentAdded(Task $task, Employee $commenter): void
     {
         $recipients = $task->assignees
@@ -135,9 +113,7 @@ class NotificationService
         ]);
     }
 
-    /**
-     * Email queue-ya əlavə et
-     */
+
     public function queueEmail(Employee $recipient, string $template, Task $task, array $payload = [], ?string $scheduledAt = null): void
     {
         EmailQueue::create([
@@ -151,16 +127,12 @@ class NotificationService
         ]);
     }
 
-    /**
-     * Deadline xatırlatma emaili planla
-     */
     public function scheduleDeadlineReminder(Task $task): void
     {
         if (!$task->due_date) return;
 
         $recipients = $task->assignees;
 
-        // 24 saat qalmış
         $reminder24h = $task->due_date->subDay()->setTime(9, 0);
         if ($reminder24h->isFuture()) {
             foreach ($recipients as $recipient) {
@@ -173,7 +145,6 @@ class NotificationService
             }
         }
 
-        // 3 saat qalmış
         $reminder3h = $task->due_date->subHours(3);
         if ($reminder3h->isFuture()) {
             foreach ($recipients as $recipient) {
