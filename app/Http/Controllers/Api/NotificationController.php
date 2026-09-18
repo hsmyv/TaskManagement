@@ -2,35 +2,25 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\CommentAdded;
-use App\Events\ChecklistToggled;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\AttachmentResource;
-use App\Http\Resources\ChecklistResource;
-use App\Http\Resources\CommentResource;
 use App\Http\Resources\NotificationResource;
-use App\Models\Attachment;
-use App\Models\Checklist;
-use App\Models\Comment;
 use App\Models\Notification;
-use App\Models\Task;
-use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 
 class NotificationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $perPage = min($request->integer('per_page', 30), 100);
+
         $notifications = Notification::where('employee_id', $request->user()->id)
             ->orderByDesc('id')
-            ->paginate(30);
+            ->paginate($perPage);
 
         return response()->json([
-            'data'  => NotificationResource::collection($notifications),
+            'data'  => NotificationResource::collection($notifications->getCollection())->resolve($request),
             'unread'=> Notification::where('employee_id', $request->user()->id)->unread()->count(),
             'meta'  => [
                 'current_page' => $notifications->currentPage(),

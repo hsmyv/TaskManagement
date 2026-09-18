@@ -71,10 +71,10 @@
     {{-- Sidebar --}}
     <aside class="w-64 bg-slate-900 text-white flex flex-col h-screen sticky top-0 shrink-0">
         <div class="px-6 py-5 border-b border-slate-700">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center font-bold text-sm">TİS</div>
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 rounded-lg hover:bg-slate-800/70 transition-colors">
+                <span class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center font-bold text-sm">TİS</span>
                 <span class="font-semibold">Tapşırıq Sistemi</span>
-            </div>
+            </a>
         </div>
 
         <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
@@ -82,6 +82,12 @@
                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors {{ request()->routeIs('dashboard') ? 'bg-slate-800 text-white' : '' }}">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
+            </a>
+
+            <a href="{{ route('tasks.calendar') }}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-colors {{ request()->routeIs('tasks.calendar') ? 'bg-slate-800 text-white' : '' }}">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg>
+                Təqvim
             </a>
 
             @can('admin.access')
@@ -188,10 +194,14 @@
     <header class="relative z-40 bg-gradient-to-r from-[#132e69] via-[#1b2960] to-[#39245f] shadow-[0_10px_30px_rgba(10,18,48,0.35)]">
         <div class="h-[74px] px-6 lg:px-8 flex items-center justify-between">
             <div class="flex items-center gap-4 min-w-0">
-                <div class="h-12 w-20 rounded-xl bg-[#0d2757] shadow-inner flex items-center justify-center text-[#6fb3ff] font-extrabold text-3xl tracking-tight">TIS</div>
+                <a href="{{ route('dashboard') }}" class="h-12 w-20 rounded-xl bg-[#0d2757] shadow-inner flex items-center justify-center text-[#6fb3ff] font-extrabold text-3xl tracking-tight hover:bg-[#12346f] transition-colors">TIS</a>
                 <div class="hidden md:block text-white/90">
                     <p class="text-lg font-medium leading-none">@yield('page-title', 'Tapşırıq İdarəetmə Sistemi')</p>
                 </div>
+                <a href="{{ route('tasks.calendar') }}"
+                   class="hidden lg:inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold text-white/85 hover:bg-white/10 {{ request()->routeIs('tasks.calendar') ? 'bg-white/15 text-white' : '' }}">
+                    Təqvim
+                </a>
             </div>
 
             <div class="flex items-center gap-4">
@@ -421,6 +431,11 @@ function notificationBell() {
             const taskId = n.data?.task_id || n.notifiable_entity_id;
             if (taskId) {
                 this.open = false;
+                if (window.location.pathname.startsWith('/tasks')) {
+                    window.location.href = `/tasks/${taskId}`;
+                    return;
+                }
+
                 window.dispatchEvent(new CustomEvent('open-task-modal', { detail: { taskId } }));
             }
         },

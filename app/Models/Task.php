@@ -138,6 +138,17 @@ class Task extends Model
         return $this->hasMany(StatusHistory::class)->latest('changed_at');
     }
 
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class, 'entity_id')
+            ->where('entity_type', 'task')
+            ->latest('created_at');
+    }
+
+    public function getTaskCodeAttribute(): string
+    {
+        return 'TIS-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+    }
 
     public function scopeRootTasks($query)
     {

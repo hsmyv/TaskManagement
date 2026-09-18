@@ -42,15 +42,18 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
     Route::post('/boards/{board}/tasks',            [BoardTaskController::class, 'store']);
     Route::patch('/tasks/{task}/move',              [BoardTaskController::class, 'move']);
 
+    Route::get('/tasks/calendar',                   [TaskController::class, 'calendar']);
     Route::get('/spaces/{space}/tasks/export',      [TaskController::class, 'export']);
     Route::get('/spaces/{space}/tasks',             [TaskController::class, 'index']);
     Route::post('/spaces/{space}/tasks',            [TaskController::class, 'store']);
     Route::get('/tasks/{task}',                     [TaskController::class, 'show']);
+    Route::get('/tasks/{task}/activity',            [TaskController::class, 'activity']);
     Route::put('/tasks/{task}',                     [TaskController::class, 'update']);
     Route::delete('/tasks/{task}',                  [TaskController::class, 'destroy']);
     Route::patch('/tasks/{task}/status',            [TaskController::class, 'updateStatus']);
     Route::patch('/tasks/{task}/approve',           [TaskController::class, 'approve']);
     Route::patch('/tasks/{task}/assignees',         [TaskController::class, 'updateAssignees']);
+    Route::patch('/tasks/{task}/collaborators',     [TaskController::class, 'updateCollaborators']);
     Route::patch('/tasks/{task}/order',             [TaskController::class, 'updateOrder']);
 
     Route::get('/tasks/{task}/subtasks',            [TaskController::class, 'subtasks']);

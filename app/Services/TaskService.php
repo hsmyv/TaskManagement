@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
 class TaskService
 {
     public function __construct(
-        private readonly NotificationService $notificationService
+        private readonly NotificationService $notificationService,
+        private readonly ActivityLogger $activityLogger
     ) {}
 
     public function createTask(Space $space, array $data, Employee $creator): Task
@@ -61,6 +62,14 @@ class TaskService
                 'to_status'   => TaskStatus::Todo->value,
                 'changed_by'  => $creator->id,
                 'changed_at'  => now(),
+            ]);
+
+            $this->activityLogger->log($creator, 'create', 'task', $task->id, $space, null, [
+                'task_code' => $task->task_code,
+                'title' => $task->title,
+                'assignee_ids' => $data['assignee_ids'] ?? [],
+                'helper_ids' => $data['helper_ids'] ?? [],
+                'supervisor_ids' => $data['supervisor_ids'] ?? [],
             ]);
 
             $task->load(['creator', 'assigner', 'assignees', 'helpers', 'supervisors', 'space']);
@@ -119,6 +128,10 @@ class TaskService
             $task->load(['creator', 'assigner', 'assignees', 'helpers', 'supervisors', 'space']);
 
             if (!empty($changes)) {
+                $this->activityLogger->log($updater, 'update', 'task', $task->id, $task->space, $task->board, [
+                    'task_code' => $task->task_code,
+                    'changes' => $changes,
+                ]);
                 $this->notificationService->notifyTaskUpdated($task, $updater, $changes);
             }
 
@@ -175,6 +188,12 @@ class TaskService
             ]);
 
             $task->load(['creator', 'assigner', 'assignees', 'space']);
+            $this->activityLogger->log($changer, 'status_changed', 'task', $task->id, $task->space, $task->board, [
+                'task_code' => $task->task_code,
+                'from_status' => $oldStatus,
+                'to_status' => $resolvedStatus->value,
+                'comment' => $comment,
+            ]);
             $this->notificationService->notifyStatusChanged($task, $changer, $oldStatus, $resolvedStatus->value);
 
             return $task;
@@ -197,6 +216,11 @@ class TaskService
             ]);
 
             $task->load(['creator', 'assigner', 'assignees', 'space']);
+            $this->activityLogger->log($approver, 'approved', 'task', $task->id, $task->space, $task->board, [
+                'task_code' => $task->task_code,
+                'from_status' => $oldStatus,
+                'to_status' => TaskStatus::Completed->value,
+            ]);
             $this->notificationService->notifyTaskApproved($task, $approver);
 
             return $task;
@@ -213,17 +237,32 @@ class TaskService
             ];
         }
         $task->assignees()->sync($syncData);
+        $task->loadMissing(['space', 'board']);
+        $this->activityLogger->log($assigner, 'assignees_updated', 'task', $task->id, $task->space, $task->board, [
+            'task_code' => $task->task_code,
+            'assignee_ids' => array_values(array_unique($employeeIds)),
+        ]);
         $this->notificationService->notifyAssigneesChanged($task, $assigner);
     }
 
     public function syncHelpers(Task $task, array $employeeIds, Employee $adder): void
     {
         $task->helpers()->sync($this->collaboratorSyncData($employeeIds, $adder));
+        $task->loadMissing(['space', 'board']);
+        $this->activityLogger->log($adder, 'helpers_updated', 'task', $task->id, $task->space, $task->board, [
+            'task_code' => $task->task_code,
+            'helper_ids' => array_values(array_unique($employeeIds)),
+        ]);
     }
 
     public function syncSupervisors(Task $task, array $employeeIds, Employee $adder): void
     {
         $task->supervisors()->sync($this->collaboratorSyncData($employeeIds, $adder));
+        $task->loadMissing(['space', 'board']);
+        $this->activityLogger->log($adder, 'supervisors_updated', 'task', $task->id, $task->space, $task->board, [
+            'task_code' => $task->task_code,
+            'supervisor_ids' => array_values(array_unique($employeeIds)),
+        ]);
     }
 
     private function collaboratorSyncData(array $employeeIds, Employee $adder): array
@@ -249,11 +288,18 @@ class TaskService
 
 public function deleteTask(Task $task, Employee $deleter): void
 {
+    $task->loadMissing(['space', 'board', 'assignees', 'creator']);
+
     // Tapşırığı yaradan özü silirsə — heç kimə notify getməsin
     // Başqası silirsə — creator + assignees-ə getsin
     if ($deleter->id !== $task->created_by) {
         $this->notificationService->notifyTaskDeleted($task, $deleter);
     }
+
+    $this->activityLogger->log($deleter, 'delete', 'task', $task->id, $task->space, $task->board, [
+        'task_code' => $task->task_code,
+        'title' => $task->title,
+    ]);
 
     $task->delete();
 }

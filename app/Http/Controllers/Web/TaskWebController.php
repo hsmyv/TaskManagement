@@ -8,6 +8,11 @@ use Illuminate\View\View;
 
 class TaskWebController extends Controller
 {
+    public function calendar(): View
+    {
+        return view('tasks.calendar');
+    }
+
     public function show(Task $task): View
     {
         $this->authorize('view', $task);

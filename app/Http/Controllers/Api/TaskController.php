@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ActivityLogResource;
 use App\Http\Resources\TaskResource;
 use App\Models\Space;
 use App\Models\Task;
@@ -234,6 +235,53 @@ class TaskController extends Controller
             'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
         ]);
     }
+
+    public function calendar(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'from' => 'nullable|date',
+            'to' => 'nullable|date|after_or_equal:from',
+            'space_id' => 'nullable|integer|exists:spaces,id',
+            'assignee_id' => 'nullable|integer|exists:employees,id',
+        ]);
+
+        $query = Task::query()
+            ->whereNull('parent_task_id')
+            ->whereNotNull('due_date')
+            ->with(['space', 'board', 'creator', 'assigner', 'assignees', 'helpers', 'supervisors'])
+            ->forEmployee($request->user());
+
+        if (!empty($data['from'])) {
+            $query->where('due_date', '>=', $data['from']);
+        }
+
+        if (!empty($data['to'])) {
+            $query->where('due_date', '<=', $data['to']);
+        }
+
+        if (!empty($data['space_id'])) {
+            $query->where('space_id', $data['space_id']);
+        }
+
+        if (!empty($data['assignee_id'])) {
+            $employeeId = (int) $data['assignee_id'];
+            $query->where(function ($query) use ($employeeId) {
+                $query->where('created_by', $employeeId)
+                    ->orWhere('assigned_by', $employeeId)
+                    ->orWhereHas('assignees', fn ($assignees) => $assignees->where('employees.id', $employeeId))
+                    ->orWhereHas('helpers', fn ($helpers) => $helpers->where('employees.id', $employeeId))
+                    ->orWhereHas('supervisors', fn ($supervisors) => $supervisors->where('employees.id', $employeeId));
+            });
+        }
+
+        $tasks = $query
+            ->orderBy('due_date')
+            ->orderBy('priority')
+            ->get();
+
+        return response()->json(TaskResource::collection($tasks));
+    }
+
     public function store(Request $request, Space $space): JsonResponse
     {
         $this->authorize('create', [Task::class, $space]);
@@ -272,7 +320,7 @@ class TaskController extends Controller
             'creator', 'assigner', 'assignees', 'helpers', 'supervisors', 'space',
             'subtasks.creator', 'subtasks.assignees', 'subtasks.helpers', 'subtasks.supervisors', 'checklists.completedBy',
             'attachments.uploader', 'comments.author', 'comments.replies.author',
-            'statusHistory.changedBy',
+            'statusHistory.changedBy', 'activityLogs.employee',
         ])->loadCount([
             'subtasks',
             'attachments',
@@ -281,6 +329,18 @@ class TaskController extends Controller
         ]);
 
         return response()->json(new TaskResource($task));
+    }
+
+    public function activity(Request $request, Task $task): JsonResponse
+    {
+        $this->authorize('view', $task);
+
+        $logs = $task->activityLogs()
+            ->with('employee')
+            ->limit($request->integer('limit', 50))
+            ->get();
+
+        return response()->json(ActivityLogResource::collection($logs));
     }
 
     public function update(Request $request, Task $task): JsonResponse
@@ -366,6 +426,34 @@ class TaskController extends Controller
         $this->taskService->syncAssignees($task, $data['assignee_ids'], $request->user());
 
         return response()->json(new TaskResource($task->load('assignees')));
+    }
+
+    public function updateCollaborators(Request $request, Task $task): JsonResponse
+    {
+        $this->authorize('assign', $task);
+
+        $data = $request->validate([
+            'assignee_ids' => 'nullable|array',
+            'assignee_ids.*' => 'exists:employees,id',
+            'helper_ids' => 'nullable|array',
+            'helper_ids.*' => 'exists:employees,id',
+            'supervisor_ids' => 'nullable|array',
+            'supervisor_ids.*' => 'exists:employees,id',
+        ]);
+
+        if (array_key_exists('assignee_ids', $data)) {
+            $this->taskService->syncAssignees($task, $data['assignee_ids'] ?? [], $request->user());
+        }
+
+        if (array_key_exists('helper_ids', $data)) {
+            $this->taskService->syncHelpers($task, $data['helper_ids'] ?? [], $request->user());
+        }
+
+        if (array_key_exists('supervisor_ids', $data)) {
+            $this->taskService->syncSupervisors($task, $data['supervisor_ids'] ?? [], $request->user());
+        }
+
+        return response()->json(new TaskResource($task->load(['assigner', 'assignees', 'helpers', 'supervisors'])));
     }
 
     /**

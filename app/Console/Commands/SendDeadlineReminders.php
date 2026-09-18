@@ -28,6 +28,8 @@ class SendDeadlineReminders extends Command
             ->get();
 
         foreach ($overdues as $task) {
+            $this->notificationService->notifyTaskOverdue($task);
+
             foreach ($task->assignees as $assignee) {
                 $this->notificationService->queueEmail($assignee, 'task_overdue', $task, [
                     'task_title' => $task->title,
@@ -39,6 +41,16 @@ class SendDeadlineReminders extends Command
         }
 
         $this->info("Gecikmiş: {$overdues->count()} task");
+
+        $dueSoon = Task::dueSoon(1)
+            ->with(['assignees', 'space'])
+            ->get();
+
+        foreach ($dueSoon as $task) {
+            $this->notificationService->notifyDeadlineReminder($task);
+        }
+
+        $this->info("Deadline yaxınlaşan: {$dueSoon->count()} task");
 
         $this->processEmailQueue();
     }

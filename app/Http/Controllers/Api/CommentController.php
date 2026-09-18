@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\CommentAdded;
-use App\Events\ChecklistToggled;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AttachmentResource;
 use App\Http\Resources\ChecklistResource;

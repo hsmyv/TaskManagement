@@ -24,6 +24,7 @@ Route::middleware(['auth', 'active.employee'])->group(function () {
     Route::get('/spaces/{space}',      [SpaceWebController::class, 'show'])->name('spaces.detail');
     Route::get('/spaces/{space}/boards/{board}', [BoardWebController::class, 'show'])->name('boards.show');
 
+    Route::get('/tasks/calendar',      [TaskWebController::class, 'calendar'])->name('tasks.calendar');
     Route::get('/tasks/{task}',        [TaskWebController::class, 'show'])->name('tasks.show');
 
     Route::get('/notifications',       [NotificationWebController::class, 'index'])->name('notifications.index');

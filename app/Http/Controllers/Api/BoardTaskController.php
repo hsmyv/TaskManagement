@@ -7,12 +7,13 @@ use App\Http\Resources\TaskResource;
 use App\Models\Board;
 use App\Models\Task;
 use App\Services\ActivityLogger;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BoardTaskController extends Controller
 {
-    public function store(Request $request, Board $board, ActivityLogger $logger): JsonResponse
+    public function store(Request $request, Board $board, ActivityLogger $logger, NotificationService $notificationService): JsonResponse
     {
         $board->load('space');
         $space = $board->space;
@@ -76,7 +77,8 @@ class BoardTaskController extends Controller
             'board_id' => $board->id,
         ]);
 
-        $task->load(['assignees', 'space']);
+        $task->load(['creator', 'assigner', 'assignees', 'space']);
+        $notificationService->notifyTaskCreated($task, $request->user());
 
         return response()->json([
             'data' => new TaskResource($task),

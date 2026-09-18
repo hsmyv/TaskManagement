@@ -12,6 +12,7 @@ class TaskResource extends JsonResource
     {
         return [
             'id'               => $this->id,
+            'task_code'        => $this->task_code,
             'title'            => $this->title,
             'description'      => $this->description,
             'space_id'         => $this->space_id,
@@ -52,6 +53,13 @@ class TaskResource extends JsonResource
             'attachments_count'=> $this->whenCounted('attachments'),
             'comments_count'   => (int) ($this->comments_count ?? 0),
             'status_history'   => StatusHistoryResource::collection($this->whenLoaded('statusHistory')),
+            'activity_logs'     => ActivityLogResource::collection($this->whenLoaded('activityLogs')),
+            'participants'      => [
+                'responsible' => new EmployeeResource($this->whenLoaded('assigner')),
+                'executors'   => EmployeeResource::collection($this->whenLoaded('assignees')),
+                'helpers'     => EmployeeResource::collection($this->whenLoaded('helpers')),
+                'observers'   => EmployeeResource::collection($this->whenLoaded('supervisors')),
+            ],
 
             'can' => [
                 'update'          => $request->user()?->can('update', $this->resource),

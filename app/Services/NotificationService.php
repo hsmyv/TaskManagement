@@ -32,6 +32,21 @@ class NotificationService
         broadcast(new NewNotification($notification))->toOthers();
     }
 
+    public function notifyOncePerDay(Employee $recipient, string $event, Task $task, array $data = []): void
+    {
+        $exists = Notification::query()
+            ->where('employee_id', $recipient->id)
+            ->where('event', $event)
+            ->where('notifiable_entity_type', Task::class)
+            ->where('notifiable_entity_id', $task->id)
+            ->whereDate('created_at', now()->toDateString())
+            ->exists();
+
+        if (!$exists) {
+            $this->notify($recipient, $event, $task, $data);
+        }
+    }
+
 
     public function notifyMany(iterable $recipients, string $event, Task $task, array $data = []): void
     {
@@ -111,6 +126,29 @@ class NotificationService
         $this->notifyMany($recipients, 'comment_added', $task, [
             'commented_by' => $commenter->full_name,
         ]);
+    }
+
+    public function notifyDeadlineReminder(Task $task): void
+    {
+        foreach ($task->assignees as $recipient) {
+            $this->notifyOncePerDay($recipient, 'deadline_reminder', $task, [
+                'task_title' => $task->title,
+                'due_date' => $task->due_date?->format('d.m.Y'),
+                'space_name' => $task->space?->name,
+            ]);
+        }
+    }
+
+    public function notifyTaskOverdue(Task $task): void
+    {
+        foreach ($task->assignees as $recipient) {
+            $this->notifyOncePerDay($recipient, 'task_overdue', $task, [
+                'task_title' => $task->title,
+                'due_date' => $task->due_date?->format('d.m.Y'),
+                'days_late' => $task->due_date?->diffInDays(now()),
+                'space_name' => $task->space?->name,
+            ]);
+        }
     }
 
 
