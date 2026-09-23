@@ -42,5 +42,10 @@ class ActivityLog extends Model
     {
         return $this->belongsTo(Employee::class, 'employee_id');
     }
+
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'entity_id');
+    }
 }
 

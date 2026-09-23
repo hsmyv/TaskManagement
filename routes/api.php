@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminEmployeeController;
+use App\Http\Controllers\Api\AdminAuditLogController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChecklistController;
@@ -95,4 +96,6 @@ Route::middleware(['auth:sanctum', 'active.employee', 'role:administrator'])
         Route::delete('/employees/{employee}',      [AdminEmployeeController::class, 'destroy']);
         Route::patch('/employees/{employee}/toggle',[AdminEmployeeController::class, 'toggleActive']);
         Route::get('/roles',                        [AdminEmployeeController::class, 'roles']);
+        Route::get('/audit-logs',                   [AdminAuditLogController::class, 'index']);
+        Route::get('/audit-logs/options',           [AdminAuditLogController::class, 'options']);
     });
