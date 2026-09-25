@@ -1,0 +1,81 @@
+ .tis-panel {
+            background: linear-gradient(180deg, #345090 0%, #314b88 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 14px 30px rgba(19, 30, 73, .12);
+        }
+        .tis-table-line { border-color: rgba(255,255,255,.13); }
+        .tis-dot { width: 13px; height: 13px; border-radius: 9999px; display: inline-block; }
+        .tis-avatar-stack img { margin-left: -10px; border: 2px solid #345090; }
+        .tis-avatar-stack img:first-child { margin-left: 0; }
+        .tis-progress-track { background: rgba(19,34,78,.72); }
+        .tis-progress-bar { border-radius: 9999px; height: 100%; }
+        .tis-select {
+            background: linear-gradient(180deg, rgba(52,80,144,.95) 0%, rgba(38,63,121,.95) 100%);
+            color: #eef3ff;
+            border: 1px solid rgba(255,255,255,.24);
+            border-radius: 14px;
+            min-height: 44px;
+            font-size: 14px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 12px 24px rgba(24, 38, 86, .12);
+            backdrop-filter: blur(10px);
+            transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+        .tis-select:hover,
+        .tis-select:focus {
+            border-color: rgba(255,255,255,.46);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 16px 28px rgba(24, 38, 86, .18);
+        }
+        .tis-select-light {
+            background: rgba(255,255,255,.28);
+            color: #f4f7ff;
+            border: 1px solid rgba(255,255,255,.24);
+            border-radius: 14px;
+            min-height: 44px;
+            font-size: 14px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 12px 24px rgba(24, 38, 86, .1);
+            backdrop-filter: blur(10px);
+        }
+        .tis-export {
+            background: linear-gradient(180deg, #6e41c7 0%, #5b33b8 100%);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 18px rgba(82, 44, 173, .18);
+        }
+        .tis-modal-card {
+            background: linear-gradient(180deg, #28447d 0%, #213a72 100%);
+        }
+        .tis-modal-scroll { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+        .tis-modal-scroll:hover, .tis-modal-scroll:focus, .tis-modal-scroll:focus-within { scrollbar-color: rgba(255,255,255,.28) transparent; }
+        .tis-modal-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .tis-modal-scroll::-webkit-scrollbar-track { background: transparent; }
+        .tis-modal-scroll::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+        .tis-modal-scroll:hover::-webkit-scrollbar-thumb, .tis-modal-scroll:focus::-webkit-scrollbar-thumb, .tis-modal-scroll:focus-within::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,.28); }
+        .tis-filter-menu {
+            background: rgba(24, 43, 93, .96);
+            border: 1px solid rgba(255,255,255,.16);
+            box-shadow: 0 24px 50px rgba(13, 25, 62, .28);
+            backdrop-filter: blur(16px);
+        }
+        .tis-board-scroll {
+            /* max-height: calc(100vh - 190px); */
+            /* overflow-y: auto; */
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.24) transparent;
+        }
+        .tis-board-scroll::-webkit-scrollbar { width: 8px; }
+        .tis-board-scroll::-webkit-scrollbar-track { background: transparent; }
+        .tis-board-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,.24);
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        .tis-modern-select {
+            background: rgba(255, 255, 255, .18);
+            border: 1px solid rgba(255,255,255,.28);
+            border-radius: 12px;
+            min-height: 38px;
+            padding: 0 34px 0 12px;
+            color: #fff;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+        }

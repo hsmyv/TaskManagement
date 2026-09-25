@@ -1,0 +1,33 @@
+        [x-cloak] { display: none !important; }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #f1f5f9; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .kanban-card { transition: box-shadow 0.2s, transform 0.15s; }
+        .kanban-card:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
+        .sortable-ghost { opacity: 0.4; background: #e0f2fe !important; border: 2px dashed #0ea5e9 !important; }
+        .sortable-chosen { box-shadow: 0 12px 30px rgba(0,0,0,0.2) !important; }
+        .status-todo { background: #f1f5f9; border-top: 3px solid #94a3b8; }
+        .status-in_progress { background: #eff6ff; border-top: 3px solid #3b82f6; }
+        .status-waiting_for_approve { background: #fffbeb; border-top: 3px solid #f59e0b; }
+        .status-completed { background: #f0fdf4; border-top: 3px solid #22c55e; }
+        .status-canceled { background: #fef2f2; border-top: 3px solid #ef4444; }
+        @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.5} }
+        .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+        .tis-input{
+    background: rgba(255,255,255,0.96);
+    color: #0f172a;
+    border: 1px solid rgba(255,255,255,0.18);
+}
+.tis-input::placeholder{
+    color: #64748b;
+}
+.tis-input:focus{
+    outline: none;
+    border-color: rgba(255,255,255,0.32);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+}
+.tis-input option{
+    color: #0f172a;
+    background: #ffffff;
+}
+
