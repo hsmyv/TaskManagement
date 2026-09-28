@@ -886,4 +886,5 @@
 
 @push('scripts')
     <script src="{{ asset('js/board.js') }}"></script>
+    <script src="{{ asset('js/employeePicker.js') }}"></script>
 @endpush

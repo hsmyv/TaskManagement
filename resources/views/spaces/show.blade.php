@@ -1083,4 +1083,5 @@
 
 @push('scripts')
     <script src="{{ asset('js/space.js') }}"></script>
+    <script src="{{ asset('js/employeePicker.js') }}"></script>
 @endpush
