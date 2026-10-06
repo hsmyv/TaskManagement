@@ -12,7 +12,7 @@ class NotificationService
 {
     public function notify(Employee $recipient, string $event, Task $task, array $data = []): void
     {
-        if ($recipient->id === request()->user()?->id) {
+        if ($recipient->id === request()?->user()?->id) {
             return;
         }
 
@@ -67,7 +67,7 @@ class NotificationService
             $this->queueEmail($recipient, 'task_created', $task, [
                 'task_title'   => $task->title,
                 'created_by'   => $creator->full_name,
-                'due_date'     => $task->due_date?->format('d.m.Y'),
+                'due_date'     => $task->due_date?->format('d.m.y'),
                 'space_name'   => $task->space?->name,
                 'task_url'     => route('tasks.show', $task),
             ]);
@@ -133,7 +133,7 @@ class NotificationService
         foreach ($task->assignees as $recipient) {
             $this->notifyOncePerDay($recipient, 'deadline_reminder', $task, [
                 'task_title' => $task->title,
-                'due_date' => $task->due_date?->format('d.m.Y'),
+                'due_date' => $task->due_date?->format('d.m.y'),
                 'space_name' => $task->space?->name,
             ]);
         }
@@ -144,7 +144,7 @@ class NotificationService
         foreach ($task->assignees as $recipient) {
             $this->notifyOncePerDay($recipient, 'task_overdue', $task, [
                 'task_title' => $task->title,
-                'due_date' => $task->due_date?->format('d.m.Y'),
+                'due_date' => $task->due_date?->format('d.m.y'),
                 'days_late' => $task->due_date?->diffInDays(now()),
                 'space_name' => $task->space?->name,
             ]);
@@ -160,9 +160,26 @@ class NotificationService
             'to_name'      => $recipient->full_name,
             'subject'      => $this->emailSubject($template, $task),
             'template'     => $template,
-            'payload'      => $payload,
+            'payload'      => array_merge([
+                'task_id' => $task->id,
+                'task_title' => $task->title,
+            ], $payload),
             'scheduled_at' => $scheduledAt,
         ]);
+    }
+
+    public function queueEmailOncePerDay(Employee $recipient, string $template, Task $task, array $payload = [], ?string $scheduledAt = null): void
+    {
+        $exists = EmailQueue::query()
+            ->where('employee_id', $recipient->id)
+            ->where('template', $template)
+            ->where('payload->task_id', $task->id)
+            ->whereDate('created_at', now()->toDateString())
+            ->exists();
+
+        if (!$exists) {
+            $this->queueEmail($recipient, $template, $task, $payload, $scheduledAt);
+        }
     }
 
     public function scheduleDeadlineReminder(Task $task): void
@@ -176,7 +193,7 @@ class NotificationService
             foreach ($recipients as $recipient) {
                 $this->queueEmail($recipient, 'deadline_reminder', $task, [
                     'task_title' => $task->title,
-                    'due_date'   => $task->due_date->format('d.m.Y'),
+                    'due_date'   => $task->due_date->format('d.m.y'),
                     'hours_left' => 24,
                     'task_url'   => route('tasks.show', $task),
                 ], $reminder24h->toDateTimeString());
@@ -188,7 +205,7 @@ class NotificationService
             foreach ($recipients as $recipient) {
                 $this->queueEmail($recipient, 'deadline_reminder', $task, [
                     'task_title' => $task->title,
-                    'due_date'   => $task->due_date->format('d.m.Y H:i'),
+                    'due_date'   => $task->due_date->format('d.m.y H:i'),
                     'hours_left' => 3,
                     'task_url'   => route('tasks.show', $task),
                 ], $reminder3h->toDateTimeString());

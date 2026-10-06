@@ -1,6 +1,26 @@
 const API_BASE   = '/api';
 const CSRF_TOKEN = document.querySelector('meta[name=csrf-token]').getAttribute('content');
 
+function formatShortDate(value) {
+    if (!value) return '-';
+    const date = value instanceof Date ? value : new Date(String(value).includes('T') ? value : `${value}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return '-';
+    return [
+        String(date.getDate()).padStart(2, '0'),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getFullYear()).slice(-2),
+    ].join('.');
+}
+
+function formatShortDateTime(value) {
+    if (!value) return '-';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return `${formatShortDate(date)} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+window.formatShortDate = formatShortDate;
+window.formatShortDateTime = formatShortDateTime;
 
 async function api(method, url, data = null, isFormData = false) {
     const opts = {
@@ -69,12 +89,7 @@ function notificationBell() {
             const taskId = n.data?.task_id || n.notifiable_entity_id;
             if (taskId) {
                 this.open = false;
-                if (window.location.pathname.startsWith('/tasks')) {
-                    window.location.href = `/tasks/${taskId}`;
-                    return;
-                }
-
-                window.dispatchEvent(new CustomEvent('open-task-modal', { detail: { taskId } }));
+                window.location.href = `/tasks/${taskId}`;
             }
         },
 
@@ -84,7 +99,6 @@ function notificationBell() {
             this.unread = 0;
         },
 
-        // ── Event tipinə görə ikona ──────────────────────────────────────
         notificationIcon(n) {
             const icons = {
                 task_created:        '📋',
@@ -118,17 +132,15 @@ function notificationBell() {
                 attachment_deleted: () => `${d.deleted_by ?? 'Biri'} faylı sildi: ${title}`,
                 approval_requested: () => `Təsdiqiniz gözlənilir: ${title}`,
                 task_approved:      () => `${d.approved_by ?? 'Biri'} tapşırığı təsdiqlədi: ${title}`,
-                deadline_reminder:  () => `Deadline yaxınlaşır (${d.due_date ?? ''}): ${title}`,
-                task_overdue:       () => `Gecikmiş tapşırıq: ${title}`,
+                deadline_reminder:  () => `Son tarix yaxınlaşır (${d.due_date ?? ''}): ${title}`,
+                task_overdue:       () => `Son tarix keçib (${d.due_date ?? ''}): ${title}`,
             };
 
             return map[n.event]?.() ?? (d.task_title ?? 'Yeni bildiriş');
         },
 
         formatDate(dt) {
-            return new Date(dt).toLocaleDateString('az-AZ', {
-                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-            });
+            return formatShortDateTime(dt);
         }
     }
 }

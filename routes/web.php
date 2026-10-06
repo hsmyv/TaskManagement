@@ -30,10 +30,7 @@ Route::middleware(['auth', 'active.employee'])->group(function () {
     Route::get('/notifications',       [NotificationWebController::class, 'index'])->name('notifications.index');
 
     Route::middleware('role:administrator')->prefix('admin')->name('admin.')->group(function () {
-        // Route::get('/',                         [AdminWebController::class, 'index'])->name('index');
-        Route::get('/', function () {
-            return redirect('admin/spaces');
-        });
+        Route::get('/',                         [AdminWebController::class, 'index'])->name('index');
         Route::get('/spaces',                   [AdminWebController::class, 'spaces'])->name('spaces');
         Route::get('/employees',                [AdminWebController::class, 'employees'])->name('employees');
         Route::get('/roles',                    [AdminWebController::class, 'roles'])->name('roles');

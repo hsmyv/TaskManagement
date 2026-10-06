@@ -282,9 +282,7 @@ function taskDetail(taskId) {
         priorityLabel(p)  { return { low:'Aşağı', medium:'Orta', high:'Yüksək', urgent:'Təcili' }[p] || p; },
         formatDate(dt) {
             if (!dt) return '';
-            return new Date(dt).toLocaleDateString('az-AZ', {
-                day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
-            });
+            return window.formatShortDateTime ? window.formatShortDateTime(dt) : dt;
         },
     }
 }

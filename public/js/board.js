@@ -775,22 +775,12 @@ function boardHub(spaceId, boardId) {
 
         formatDate(dt) {
             if (!dt) return '';
-            const date = new Date(dt);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
-            return `${day}/${month}/${year}`;
+            return window.formatShortDate ? window.formatShortDate(dt) : dt;
         },
 
         formatDateTime(dt) {
             if (!dt) return '';
-            const date = new Date(dt);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
-            const hour = String(date.getHours()).padStart(2, '0');
-            const minute = String(date.getMinutes()).padStart(2, '0');
-            return `${day}/${month}/${year} ${hour}:${minute}`;
+            return window.formatShortDateTime ? window.formatShortDateTime(dt) : dt;
         },
 
         progressPercent(t) {
@@ -838,4 +828,3 @@ function boardHub(spaceId, boardId) {
         },
     }
 };
-

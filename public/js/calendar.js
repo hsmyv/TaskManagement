@@ -4,6 +4,7 @@ function taskCalendar() {
         selectedDate: '',
         tasks: [],
         weekDays: ['B.e', 'Ç.a', 'Ç', 'C.a', 'C', 'Ş', 'B'],
+        monthNames: ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'],
 
         async init() {
             this.current = new Date(this.current.getFullYear(), this.current.getMonth(), 1);
@@ -12,7 +13,7 @@ function taskCalendar() {
         },
 
         get monthTitle() {
-            return this.current.toLocaleDateString('az-AZ', { month: 'long', year: 'numeric' });
+            return `${this.monthNames[this.current.getMonth()]} ${this.current.getFullYear()}`;
         },
 
         get calendarDays() {
@@ -39,9 +40,8 @@ function taskCalendar() {
 
         get selectedDateLabel() {
             if (!this.selectedDate) return 'Gün seçilməyib';
-            return new Date(`${this.selectedDate}T12:00:00`).toLocaleDateString('az-AZ', {
-                day: 'numeric', month: 'long', year: 'numeric'
-            });
+            const date = new Date(`${this.selectedDate}T12:00:00`);
+            return `${date.getDate()} ${this.monthNames[date.getMonth()]}, ${date.getFullYear()}`;
         },
 
         async loadTasks() {

@@ -20,7 +20,7 @@
                     <h2 class="text-[19px] font-medium tracking-[0.01em] mb-5">{{ $board->name ?? '' }}</h2>
                     @if($board->deadline)
                         <h2 class="text-[19px] font-medium tracking-[0.01em] mb-5">
-                            Son tarix: {{ \Carbon\Carbon::parse($board->deadline)->format('d.m.Y') }}
+                            Son tarix: {{ \Carbon\Carbon::parse($board->deadline)->format('d.m.y') }}
                         </h2>
                     @endif
                   <h3 class="text-[19px] font-medium tracking-[0.01em] mt-5 mb-5">Təsvir</h3>

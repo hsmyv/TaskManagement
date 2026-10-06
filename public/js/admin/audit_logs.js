@@ -83,10 +83,7 @@ function adminAuditLogs() {
 
         formatDate(value) {
             if (!value) return '—';
-            return new Date(value).toLocaleString('az-AZ', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit'
-            });
+            return window.formatShortDateTime ? window.formatShortDateTime(value) : value;
         },
 
         formatMeta(meta) {

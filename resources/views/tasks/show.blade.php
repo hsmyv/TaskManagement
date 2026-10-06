@@ -282,7 +282,7 @@
                     <div class="flex justify-between items-center">
                         <span class="text-slate-500">Son tarix</span>
                         <span class="font-medium" :class="task.is_overdue ? 'text-red-600 font-semibold' : 'text-slate-700'"
-                              x-text="(task.is_overdue ? '⚠ ' : '') + (task.due_date || '—')"></span>
+                              x-text="(task.is_overdue ? '⚠ ' : '') + (task.due_date ? formatDate(task.due_date) : '—')"></span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-slate-500">Prioritet</span>

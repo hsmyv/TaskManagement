@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AdminEmployeeController;
 use App\Http\Controllers\Api\AdminAuditLogController;
+use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChecklistController;
@@ -90,6 +91,7 @@ Route::middleware(['auth:sanctum', 'active.employee'])->group(function () {
 Route::middleware(['auth:sanctum', 'active.employee', 'role:administrator'])
     ->prefix('admin')
     ->group(function () {
+        Route::get('/dashboard',                    [AdminDashboardController::class, 'index']);
         Route::get('/employees',                    [AdminEmployeeController::class, 'index']);
         Route::post('/employees',                   [AdminEmployeeController::class, 'store']);
         Route::put('/employees/{employee}',         [AdminEmployeeController::class, 'update']);

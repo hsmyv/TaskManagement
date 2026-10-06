@@ -31,9 +31,9 @@ class SendDeadlineReminders extends Command
             $this->notificationService->notifyTaskOverdue($task);
 
             foreach ($task->assignees as $assignee) {
-                $this->notificationService->queueEmail($assignee, 'task_overdue', $task, [
+                $this->notificationService->queueEmailOncePerDay($assignee, 'task_overdue', $task, [
                     'task_title' => $task->title,
-                    'due_date'   => $task->due_date->format('d.m.Y'),
+                    'due_date'   => $task->due_date->format('d.m.y'),
                     'days_late'  => $task->due_date->diffInDays(now()),
                     'task_url'   => route('tasks.show', $task),
                 ]);
@@ -42,12 +42,24 @@ class SendDeadlineReminders extends Command
 
         $this->info("Gecikmiş: {$overdues->count()} task");
 
-        $dueSoon = Task::dueSoon(1)
+        $dueSoon = Task::query()
+            ->whereNull('parent_task_id')
+            ->whereNotIn('status', [Task::STATUS_COMPLETED, Task::STATUS_CANCELED])
+            ->whereDate('due_date', now()->addDay()->toDateString())
             ->with(['assignees', 'space'])
             ->get();
 
         foreach ($dueSoon as $task) {
             $this->notificationService->notifyDeadlineReminder($task);
+
+            foreach ($task->assignees as $assignee) {
+                $this->notificationService->queueEmailOncePerDay($assignee, 'deadline_reminder', $task, [
+                    'task_title' => $task->title,
+                    'due_date'   => $task->due_date->format('d.m.y'),
+                    'hours_left' => 24,
+                    'task_url'   => route('tasks.show', $task),
+                ]);
+            }
         }
 
         $this->info("Deadline yaxınlaşan: {$dueSoon->count()} task");
